@@ -64,42 +64,42 @@ WHERE day_number = 3;
 INSERT INTO profile_content (daily_content_id, profile_type, star_food_name, star_food_description, allowed_foods)
 SELECT id, 'hormonal', 'Eggs', 
 'Rich in protein and healthy fats to support hormone balance',
-ARRAY['Eggs', 'Avocado', 'Wild Salmon', 'Leafy Greens', 'Berries', 'Nuts', 'Seeds', 'Greek Yogurt']
+'["Eggs", "Avocado", "Wild Salmon", "Leafy Greens", "Berries", "Nuts", "Seeds", "Greek Yogurt"]'::jsonb
 FROM daily_content WHERE day_number = 1;
 
 -- Profile Content for Day 1 - Inflammatory Type
 INSERT INTO profile_content (daily_content_id, profile_type, star_food_name, star_food_description, allowed_foods)
 SELECT id, 'inflammatory', 'Turmeric',
 'Powerful anti-inflammatory properties to reduce inflammation',
-ARRAY['Turmeric', 'Ginger', 'Fatty Fish', 'Berries', 'Leafy Greens', 'Olive Oil', 'Green Tea', 'Walnuts']
+'["Turmeric", "Ginger", "Fatty Fish", "Berries", "Leafy Greens", "Olive Oil", "Green Tea", "Walnuts"]'::jsonb
 FROM daily_content WHERE day_number = 1;
 
 -- Profile Content for Day 1 - Cortisol Type
 INSERT INTO profile_content (daily_content_id, profile_type, star_food_name, star_food_description, allowed_foods)
 SELECT id, 'cortisol', 'Dark Chocolate',
 'Rich in magnesium to help manage stress and cortisol levels',
-ARRAY['Dark Chocolate', 'Bananas', 'Oatmeal', 'Almonds', 'Spinach', 'Sweet Potato', 'Chamomile Tea', 'Blueberries']
+'["Dark Chocolate", "Bananas", "Oatmeal", "Almonds", "Spinach", "Sweet Potato", "Chamomile Tea", "Blueberries"]'::jsonb
 FROM daily_content WHERE day_number = 1;
 
 -- Profile Content for Day 1 - Metabolic Type
 INSERT INTO profile_content (daily_content_id, profile_type, star_food_name, star_food_description, allowed_foods)
 SELECT id, 'metabolic', 'Green Tea',
 'Boosts metabolism and enhances fat burning naturally',
-ARRAY['Green Tea', 'Lean Protein', 'Chili Peppers', 'Coffee', 'Whole Grains', 'Legumes', 'Apple Cider Vinegar', 'Coconut Oil']
+'["Green Tea", "Lean Protein", "Chili Peppers", "Coffee", "Whole Grains", "Legumes", "Apple Cider Vinegar", "Coconut Oil"]'::jsonb
 FROM daily_content WHERE day_number = 1;
 
 -- Profile Content for Day 1 - Retention Type
 INSERT INTO profile_content (daily_content_id, profile_type, star_food_name, star_food_description, allowed_foods)
 SELECT id, 'retention', 'Cucumber',
 'Natural diuretic to help reduce water retention',
-ARRAY['Cucumber', 'Celery', 'Asparagus', 'Watermelon', 'Lemon Water', 'Parsley', 'Dandelion Tea', 'Potassium-Rich Foods']
+'["Cucumber", "Celery", "Asparagus", "Watermelon", "Lemon Water", "Parsley", "Dandelion Tea", "Potassium-Rich Foods"]'::jsonb
 FROM daily_content WHERE day_number = 1;
 
 -- Profile Content for Day 1 - Insulinic Type
 INSERT INTO profile_content (daily_content_id, profile_type, star_food_name, star_food_description, allowed_foods)
 SELECT id, 'insulinic', 'Cinnamon',
 'Helps regulate blood sugar and improve insulin sensitivity',
-ARRAY['Cinnamon', 'Leafy Greens', 'Chia Seeds', 'Fatty Fish', 'Nuts', 'Apple Cider Vinegar', 'Berries', 'Avocado']
+'["Cinnamon", "Leafy Greens", "Chia Seeds", "Fatty Fish", "Nuts", "Apple Cider Vinegar", "Berries", "Avocado"]'::jsonb
 FROM daily_content WHERE day_number = 1;
 
 -- Repeat similar profile content for Days 2 and 3

@@ -79,6 +79,7 @@ export default function OnboardingPage() {
       } catch (error) {
         console.error('Error initializing onboarding:', error)
         toast.error('Failed to load onboarding')
+        setLoading(false)
       }
     }
 

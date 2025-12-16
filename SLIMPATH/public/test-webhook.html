@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Webhook Tester</title>
+    <style>
+        body { font-family: Arial; max-width: 600px; margin: 50px auto; padding: 20px; }
+        input, select, button { width: 100%; padding: 10px; margin: 10px 0; font-size: 16px; }
+        button { background: #0070f3; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0051cc; }
+        #result { margin-top: 20px; padding: 15px; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <h1>🧪 SlimPath Webhook Tester</h1>
+    
+    <input type="text" id="email" placeholder="Email (e.g., test@example.com)" value="test@example.com">
+    
+    <input type="text" id="name" placeholder="Full Name" value="John Doe">
+    
+    <select id="profile">
+        <option value="hormonal">Hormonal</option>
+        <option value="inflammatory">Inflammatory</option>
+        <option value="cortisol">Cortisol</option>
+        <option value="metabolic">Metabolic</option>
+        <option value="retention">Retention</option>
+        <option value="insulinic">Insulinic</option>
+    </select>
+    
+    <select id="plan">
+        <option value="monthly">Monthly ($37)</option>
+        <option value="annual">Annual ($297)</option>
+    </select>
+    
+    <input type="text" id="secret" placeholder="Webhook Secret (from .env.local)" value="your_webhook_secret_here">
+    
+    <button onclick="testWebhook()">🚀 Send Test Payment</button>
+    
+    <div id="result"></div>
+
+    <script>
+        async function testWebhook() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '⏳ Sending webhook...';
+            resultDiv.className = '';
+            
+            const payload = {
+                email: document.getElementById('email').value,
+                name: document.getElementById('name').value,
+                profile_type: document.getElementById('profile').value,
+                subscription_plan: document.getElementById('plan').value,
+                transaction_id: 'test_' + Date.now(),
+                amount: document.getElementById('plan').value === 'monthly' ? 37 : 297
+            };
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/webhook', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-webhook-secret': document.getElementById('secret').value
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Success!</h3>
+                        <p><strong>User ID:</strong> ${data.user_id}</p>
+                        <p><strong>Email:</strong> ${payload.email}</p>
+                        <p><strong>Profile:</strong> ${payload.profile_type}</p>
+                        <p><strong>Plan:</strong> ${payload.subscription_plan}</p>
+                        <hr>
+                        <p>Next step: Login at <a href="http://localhost:3000/login" target="_blank">http://localhost:3000/login</a></p>
+                        <p>Use email: ${payload.email}</p>
+                    `;
+                } else {
+                    resultDiv.className = 'error';
+                    resultDiv.innerHTML = `
+                        <h3>❌ Error</h3>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Error:</strong> ${data.error || 'Unknown error'}</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.className = 'error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Connection Error</h3>
+                    <p>${error.message}</p>
+                    <p>Make sure your dev server is running on localhost:3000</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

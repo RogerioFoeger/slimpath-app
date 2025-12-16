@@ -40,7 +40,7 @@ export function Step6Processing({ onComplete }: Step6ProcessingProps) {
     <div className="space-y-6">
       <div className="text-center mb-8">
         <motion.div
-          className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-primary flex items-center justify-center"
+          className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-primary flex items-center justify-center p-3"
           animate={{
             rotate: completed ? 0 : 360,
             scale: completed ? 1.1 : 1,
@@ -53,7 +53,11 @@ export function Step6Processing({ onComplete }: Step6ProcessingProps) {
           {completed ? (
             <Check className="w-12 h-12 text-white" />
           ) : (
-            <span className="text-5xl">🤖</span>
+            <img 
+              src="/logo.png" 
+              alt="Lean AI Coach" 
+              className="w-full h-full object-contain"
+            />
           )}
         </motion.div>
 

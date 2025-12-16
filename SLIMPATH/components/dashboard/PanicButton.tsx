@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import React, { useState, useRef } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { AlertCircle, Play, Pause } from 'lucide-react'
@@ -110,7 +110,7 @@ export function PanicButton({ audioUrl, supportText }: PanicButtonProps) {
                 '🌬️ Take 5 slow, deep breaths',
                 '💧 Drink a glass of water slowly',
                 '🚶 Take a short 5-minute walk',
-                '📝 Write down what you're feeling',
+                '📝 Write down what you\'re feeling',
                 '🤗 Remember why you started this journey',
               ].map((tip, index) => (
                 <div
@@ -127,17 +127,16 @@ export function PanicButton({ audioUrl, supportText }: PanicButtonProps) {
           <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
             <p className="text-sm text-gray-700">
               <strong>Remember:</strong> SlimPath is here to support you, 
-              but if you're experiencing severe anxiety or distress, 
+              but if you&apos;re experiencing severe anxiety or distress, 
               please reach out to a healthcare professional.
             </p>
           </div>
 
           <Button onClick={handleClose} variant="outline" className="w-full">
-            I'm Feeling Better
+            I&apos;m Feeling Better
           </Button>
         </div>
       </Modal>
     </>
   )
 }
-

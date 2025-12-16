@@ -70,8 +70,12 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-primary flex items-center justify-center shadow-large">
-            <span className="text-4xl">🤖</span>
+          <div className="w-32 h-32 mx-auto mb-4 relative">
+            <img 
+              src="/logo.png" 
+              alt="SlimPath AI Logo" 
+              className="w-full h-full object-contain drop-shadow-lg"
+            />
           </div>
           <h1 className="text-3xl font-bold gradient-text mb-2">SlimPath AI</h1>
           <p className="text-gray-600">Your Personal Weight Loss Journey</p>

@@ -89,7 +89,13 @@ export function Step7Welcome({ userName, profileType, onStart }: Step7WelcomePro
           </div>
 
           <div className="flex items-start gap-3">
-            <span className="text-2xl">🤖</span>
+            <div className="w-8 h-8 flex-shrink-0">
+              <img 
+                src="/logo.png" 
+                alt="Lean AI Coach" 
+                className="w-full h-full object-contain"
+              />
+            </div>
             <div>
               <p className="font-semibold text-gray-900">24/7 AI Support</p>
               <p className="text-sm text-gray-600">

@@ -1,6 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  transpilePackages: ['@supabase/supabase-js', '@supabase/ssr'],
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+      };
+    }
+    // Force CommonJS resolution for Supabase
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@supabase/supabase-js': require.resolve('@supabase/supabase-js'),
+    };
+    return config;
+  },
   images: {
     domains: ['localhost'],
     unoptimized: process.env.NODE_ENV === 'development',

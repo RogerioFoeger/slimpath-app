@@ -214,6 +214,26 @@ CREATE TRIGGER update_admin_users_updated_at BEFORE UPDATE ON admin_users
 CREATE TRIGGER update_bonus_content_updated_at BEFORE UPDATE ON bonus_content
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+-- Function to handle new user registration
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.users (id, email, profile_type, full_name)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    'hormonal', -- Default profile type, will be updated during onboarding
+    COALESCE(NEW.raw_user_meta_data->>'full_name', '')
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to create user profile on signup
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
 -- Row Level Security (RLS) Policies
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_onboarding ENABLE ROW LEVEL SECURITY;
@@ -227,6 +247,9 @@ CREATE POLICY "Users can view own profile" ON users
 
 CREATE POLICY "Users can update own profile" ON users
   FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Service role can insert users" ON users
+  FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Users can view own onboarding" ON user_onboarding
   FOR SELECT USING (auth.uid() = user_id);

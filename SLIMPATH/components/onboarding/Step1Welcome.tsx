@@ -24,8 +24,12 @@ export function Step1Welcome({ profileType, userName, onNext }: Step1WelcomeProp
         animate={{ scale: 1 }}
         transition={{ type: 'spring', duration: 0.8 }}
       >
-        <div className="w-32 h-32 rounded-full bg-gradient-primary flex items-center justify-center shadow-large">
-          <span className="text-6xl">🤖</span>
+        <div className="w-32 h-32 relative">
+          <img 
+            src="/logo.png" 
+            alt="Lean AI Coach" 
+            className="w-full h-full object-contain drop-shadow-2xl"
+          />
         </div>
       </motion.div>
 

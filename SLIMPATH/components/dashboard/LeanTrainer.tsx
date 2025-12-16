@@ -22,7 +22,7 @@ export function LeanTrainer({ message, microChallenge }: LeanTrainerProps) {
       <div className="relative z-10">
         <div className="flex items-start gap-4 mb-4">
           <motion.div
-            className="w-16 h-16 rounded-full bg-white flex items-center justify-center flex-shrink-0 shadow-lg"
+            className="w-16 h-16 rounded-full bg-white flex items-center justify-center flex-shrink-0 shadow-lg p-2"
             animate={{
               scale: [1, 1.05, 1],
             }}
@@ -32,7 +32,11 @@ export function LeanTrainer({ message, microChallenge }: LeanTrainerProps) {
               ease: 'easeInOut',
             }}
           >
-            <span className="text-3xl">🤖</span>
+            <img 
+              src="/logo.png" 
+              alt="Lean AI Coach" 
+              className="w-full h-full object-contain"
+            />
           </motion.div>
 
           <div className="flex-1">

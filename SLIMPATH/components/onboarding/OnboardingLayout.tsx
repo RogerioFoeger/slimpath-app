@@ -2,7 +2,6 @@
 
 import { ReactNode } from 'react'
 import { motion } from 'framer-motion'
-import Image from 'next/image'
 
 interface OnboardingLayoutProps {
   children: ReactNode
@@ -19,8 +18,12 @@ export function OnboardingLayout({ children, currentStep, totalSteps }: Onboardi
       <header className="p-6">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center">
-              <span className="text-white font-bold text-xl">S</span>
+            <div className="w-10 h-10 relative">
+              <img 
+                src="/logo.png" 
+                alt="SlimPath AI Logo" 
+                className="w-full h-full object-contain"
+              />
             </div>
             <span className="text-xl font-bold gradient-text">SlimPath AI</span>
           </div>
