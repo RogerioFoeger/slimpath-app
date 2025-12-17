@@ -22,7 +22,7 @@ export async function GET() {
     // Check if we have any users
     const { data: users, error: usersError } = await supabase
       .from('users')
-      .select('id, email, current_day, profile_type, onboarding_completed')
+      .select('id, email, current_day, profile_type')
       .limit(5)
 
     if (usersError) {
@@ -32,9 +32,16 @@ export async function GET() {
 
     results.push(`✓ Found ${users?.length || 0} users`)
     if (users && users.length > 0) {
-      users.forEach(user => {
-        results.push(`  - ${user.email}: Day ${user.current_day}, Profile: ${user.profile_type || 'null'}, Onboarded: ${user.onboarding_completed}`)
-      })
+      for (const user of users) {
+        // Get onboarding status from user_onboarding table
+        const { data: onboarding } = await supabase
+          .from('user_onboarding')
+          .select('onboarding_completed')
+          .eq('user_id', user.id)
+          .single()
+        
+        results.push(`  - ${user.email}: Day ${user.current_day}, Profile: ${user.profile_type || 'null'}, Onboarded: ${onboarding?.onboarding_completed || false}`)
+      }
     }
     results.push('')
 

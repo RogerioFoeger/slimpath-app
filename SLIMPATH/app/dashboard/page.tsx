@@ -299,9 +299,16 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="bg-white shadow-soft sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold gradient-text">SlimPath AI</h1>
-            <p className="text-sm text-gray-600">{getGreeting()}, {user.full_name}!</p>
+          <div className="flex items-center gap-3">
+            <img 
+              src="/project_logo.png" 
+              alt="SlimPath AI Logo" 
+              className="w-10 h-10 object-contain"
+            />
+            <div>
+              <h1 className="text-2xl font-bold gradient-text">SlimPath AI</h1>
+              <p className="text-sm text-gray-600">{getGreeting()}, {user.full_name}!</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {isSupported && (
