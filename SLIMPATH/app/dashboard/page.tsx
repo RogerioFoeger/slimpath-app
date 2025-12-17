@@ -53,16 +53,45 @@ export default function DashboardPage() {
 
       if (userError) throw userError
 
+      // Check for onboarding completion flag from sessionStorage
+      const justCompleted = sessionStorage.getItem('onboarding_just_completed')
+      
       // Check if onboarding is completed
-      const { data: onboarding } = await supabase
+      const { data: onboarding, error: onboardingError } = await supabase
         .from('user_onboarding')
         .select('*')
         .eq('user_id', authUser.id)
-        .single()
+        .maybeSingle()
 
-      if (!onboarding?.onboarding_completed) {
-        router.push('/onboarding')
-        return
+      // If we just completed onboarding, clear the flag and continue
+      if (justCompleted === 'true') {
+        sessionStorage.removeItem('onboarding_just_completed')
+        
+        // If onboarding record still shows incomplete, wait a moment and retry once
+        if (!onboarding || !onboarding.onboarding_completed) {
+          console.log('Onboarding status not yet synced, retrying once...')
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          
+          const { data: retryOnboarding } = await supabase
+            .from('user_onboarding')
+            .select('*')
+            .eq('user_id', authUser.id)
+            .maybeSingle()
+          
+          if (!retryOnboarding || !retryOnboarding.onboarding_completed) {
+            console.error('Onboarding verification failed after retry')
+            toast.error('Unable to verify onboarding completion. Please try again.')
+            router.push('/onboarding')
+            return
+          }
+        }
+      } else {
+        // Normal dashboard load - check onboarding status
+        if (!onboarding || !onboarding.onboarding_completed) {
+          console.log('Onboarding not completed, redirecting...', { onboarding, onboardingError })
+          router.push('/onboarding')
+          return
+        }
       }
 
       setUser(userProfile)

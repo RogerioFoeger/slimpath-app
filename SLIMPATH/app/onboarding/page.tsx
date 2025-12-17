@@ -64,13 +64,15 @@ export default function OnboardingPage() {
         setProfileType(profile.profile_type)
 
         // Check if onboarding is already completed
+        // Use maybeSingle to handle cases where no record exists yet
         const { data: onboarding } = await supabase
           .from('user_onboarding')
           .select('*')
           .eq('user_id', user.id)
-          .single()
+          .maybeSingle()
 
         if (onboarding?.onboarding_completed) {
+          // Only redirect if we're not in the middle of a completion flow
           router.push('/dashboard')
           return
         }
@@ -112,7 +114,9 @@ export default function OnboardingPage() {
       const step2 = onboardingData.step2!
       const bmi = calculateBMI(step2.current_weight_kg, step2.height_cm)
 
-      await supabase.from('user_onboarding').upsert({
+      // Use upsert to handle both new and existing records
+      // This requires a unique constraint on user_id (should be set via SQL migration)
+      const { error: onboardingError } = await supabase.from('user_onboarding').upsert({
         user_id: userId,
         age: step2.age,
         height_cm: step2.height_cm,
@@ -125,10 +129,19 @@ export default function OnboardingPage() {
         diet_history: onboardingData.step5!.diet_history,
         onboarding_completed: true,
         completed_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id',
+        ignoreDuplicates: false
       })
 
+      if (onboardingError) {
+        console.error('Error saving onboarding:', onboardingError)
+        toast.error('Failed to save your information. Please try again.')
+        throw onboardingError
+      }
+
       // Initialize day 1 progress
-      await supabase.from('user_daily_progress').insert({
+      const { error: progressError } = await supabase.from('user_daily_progress').insert({
         user_id: userId,
         day_number: 1,
         date: new Date().toISOString().split('T')[0],
@@ -138,15 +151,66 @@ export default function OnboardingPage() {
         point_earned: false,
       })
 
+      if (progressError) {
+        console.error('Error creating daily progress:', progressError)
+        // Don't fail if progress already exists
+        if (progressError.code !== '23505') { // 23505 is unique constraint violation
+          toast.error('Failed to initialize daily progress. Please try again.')
+          throw progressError
+        }
+      }
+
+      // Verify onboarding was saved successfully
+      const { data: verifyOnboarding, error: verifyError } = await supabase
+        .from('user_onboarding')
+        .select('onboarding_completed')
+        .eq('user_id', userId)
+        .single()
+
+      if (verifyError || !verifyOnboarding?.onboarding_completed) {
+        console.error('Onboarding verification failed:', verifyError)
+        toast.error('Failed to complete onboarding. Please try again.')
+        throw new Error('Onboarding not properly saved')
+      }
+
+      // Only proceed to step 7 if everything succeeded
       setCurrentStep(7)
     } catch (error) {
-      console.error('Error saving onboarding:', error)
-      toast.error('Failed to save your information')
+      console.error('Error in onboarding completion:', error)
+      // Keep user on step 6 so they can try again
     }
   }
 
-  const handleStartDashboard = () => {
-    router.push('/dashboard')
+  const handleStartDashboard = async () => {
+    try {
+      // Force a fresh query with cache bypass
+      const { data: onboarding, error } = await supabase
+        .from('user_onboarding')
+        .select('onboarding_completed')
+        .eq('user_id', userId)
+        .single()
+
+      if (error) {
+        console.error('Error verifying onboarding:', error)
+        toast.error('Unable to verify onboarding status. Please try again.')
+        return
+      }
+
+      if (!onboarding?.onboarding_completed) {
+        toast.error('Onboarding not properly completed. Please try again.')
+        setCurrentStep(6) // Go back to processing step
+        return
+      }
+
+      // Set a flag in sessionStorage to prevent onboarding check redirect
+      sessionStorage.setItem('onboarding_just_completed', 'true')
+
+      // Navigate to dashboard
+      router.push('/dashboard')
+    } catch (error) {
+      console.error('Error starting dashboard:', error)
+      toast.error('Failed to navigate to dashboard. Please try again.')
+    }
   }
 
   if (loading) {

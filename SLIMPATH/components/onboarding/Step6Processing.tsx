@@ -38,15 +38,43 @@ export function Step6Processing({ onComplete }: Step6ProcessingProps) {
 
   return (
     <div className="space-y-6">
+      <style jsx>{`
+        @keyframes gradientShift {
+          0% {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          }
+          25% {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+          }
+          50% {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+          }
+          75% {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+          }
+          100% {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          }
+        }
+      `}</style>
       <div className="text-center mb-8">
         <motion.div
-          className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-primary flex items-center justify-center p-3"
+          className={cn(
+            "w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center p-3",
+            completed ? "bg-gradient-to-br from-green-400 to-green-600" : ""
+          )}
+          style={
+            !completed
+              ? {
+                  animation: 'gradientShift 4s ease-in-out infinite',
+                  backgroundSize: '200% 200%',
+                }
+              : undefined
+          }
           animate={{
-            rotate: completed ? 0 : 360,
             scale: completed ? 1.1 : 1,
           }}
           transition={{
-            rotate: { duration: 2, repeat: completed ? 0 : Infinity, ease: 'linear' },
             scale: { duration: 0.3 },
           }}
         >
