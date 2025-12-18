@@ -8,6 +8,8 @@
   --background-end-rgb: 255, 255, 255;
 }
 
+/* Dark mode disabled - app is designed for light theme only */
+/* Uncomment below if you want to implement proper dark mode in the future
 @media (prefers-color-scheme: dark) {
   :root {
     --foreground-rgb: 255, 255, 255;
@@ -15,6 +17,7 @@
     --background-end-rgb: 15, 23, 42;
   }
 }
+*/
 
 body {
   color: rgb(var(--foreground-rgb));
@@ -29,6 +32,16 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure all text is visible by default */
+* {
+  -webkit-text-fill-color: currentColor;
+}
+
+/* Override for gradient text specifically */
+.gradient-text {
+  -webkit-text-fill-color: transparent !important;
 }
 
 @layer utilities {
@@ -47,6 +60,8 @@ body {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    /* Ensure this only applies to elements with this class */
+    display: inline-block;
   }
   
   .shadow-soft {
@@ -82,20 +97,55 @@ body {
   }
   
   .input-field {
-    @apply w-full px-4 py-3 border-2 border-gray-300 rounded-lg
+    @apply w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-900
            focus:border-primary-500 focus:outline-none transition-colors
            placeholder:text-gray-400;
   }
   
   .card {
     @apply bg-white rounded-2xl shadow-soft hover:shadow-medium
-           transition-shadow duration-300 p-6;
+           transition-shadow duration-300 p-6 text-gray-900;
   }
   
   .card-interactive {
     @apply card cursor-pointer hover:scale-[1.02] transition-transform
            active:scale-[0.98];
   }
+}
+
+/* Fix for input text visibility */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+input[type="search"],
+textarea {
+  color: #111827 !important; /* gray-900 */
+  -webkit-text-fill-color: #111827 !important;
+}
+
+input[type="text"]:disabled,
+input[type="email"]:disabled,
+input[type="password"]:disabled,
+input[type="number"]:disabled,
+input[type="tel"]:disabled,
+input[type="url"]:disabled,
+input[type="search"]:disabled,
+textarea:disabled {
+  color: #9ca3af !important; /* gray-400 */
+  -webkit-text-fill-color: #9ca3af !important;
+}
+
+/* Fix for autofill styling */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: #111827 !important;
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 /* Custom scrollbar */
