@@ -22,6 +22,7 @@ This page allows you to create test user accounts **without any payment processi
 
 3. **Fill the form:**
    - Email: Your real email (to receive magic link)
+   - Password: Choose a password (min 6 characters)
    - Name: Any name
    - Type: Choose metabolism type
    - Plan: Monthly or Annual
@@ -29,16 +30,28 @@ This page allows you to create test user accounts **without any payment processi
 4. **Submit:**
    - User created instantly
    - Magic link sent to email
+   - Password set for future logins
    - No payment required!
 
 ## What it does
 
 This page:
 - ✅ Calls `/api/webhook` directly
-- ✅ Creates user in Supabase
+- ✅ Creates user in Supabase with password
 - ✅ Sends magic link email
 - ✅ Sets subscription with $0 payment
 - ✅ Gives full app access
+
+## Login Options
+
+After creating a test account, you can log in using either:
+1. **Magic Link:** Click the link sent to your email
+2. **Email & Password:** Use the `/login` page with your email and password
+
+This allows you to:
+- Log out and log back in anytime
+- Test both authentication methods
+- Sign up multiple times with the same email (password will be updated)
 
 ## Security
 

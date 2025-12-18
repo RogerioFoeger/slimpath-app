@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
     // Extract user data from webhook payload
     const {
       email,
+      password,
       name,
       profile_type,
       subscription_plan,
@@ -71,12 +72,32 @@ export async function POST(request: NextRequest) {
       // User already exists in auth
       console.log(`User ${email} already exists in auth with ID: ${existingAuthUser.id}`)
       userId = existingAuthUser.id
+      
+      // If password is provided, update the user's password
+      // This allows test users to sign up again with a new/same password
+      if (password) {
+        const { error: updateError } = await supabase.auth.admin.updateUserById(
+          existingAuthUser.id,
+          { password }
+        )
+        if (updateError) {
+          console.error('Failed to update password:', updateError)
+        } else {
+          console.log(`Updated password for user: ${email}`)
+        }
+      }
     } else {
       // Create new auth user
       console.log(`Creating new auth user for: ${email}`)
+      
+      // Use provided password if available, otherwise set default for test users
+      const isTestUser = amount === 0 || amount === '0'
+      const userPassword = password || (isTestUser ? 'TestUser123!' : undefined)
+      
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email,
         email_confirm: true,
+        password: userPassword,
         user_metadata: {
           full_name: name,
           profile_type: normalizedProfileType,
@@ -100,7 +121,7 @@ export async function POST(request: NextRequest) {
       }
 
       userId = authData.user.id
-      console.log(`Created auth user with ID: ${userId}`)
+      console.log(`Created auth user with ID: ${userId}${userPassword ? ' (with password)' : ' (magic link only)'}`)
       
       // Wait a moment for the trigger to create the profile
       await new Promise(resolve => setTimeout(resolve, 1000))

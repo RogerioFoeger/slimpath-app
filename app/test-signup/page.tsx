@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input'
 
 export default function TestSignupPage() {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [profileType, setProfileType] = useState('cortisol')
   const [plan, setPlan] = useState('monthly')
@@ -29,6 +30,7 @@ export default function TestSignupPage() {
         },
         body: JSON.stringify({
           email,
+          password,
           name,
           profile_type: profileType,
           subscription_plan: plan,
@@ -73,6 +75,22 @@ export default function TestSignupPage() {
               />
               <p className="text-xs text-gray-500 mt-1">
                 Use a real email to receive the magic link
+              </p>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Password</label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Choose a password (min 6 characters)"
+                required
+                minLength={6}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Set a password so you can log in with email/password later
               </p>
             </div>
 
@@ -139,12 +157,15 @@ export default function TestSignupPage() {
               <div className="text-sm space-y-1">
                 <p><strong>User ID:</strong> {result.user_id}</p>
                 <p><strong>Status:</strong> {result.message}</p>
-                <p className="text-green-600 font-semibold mt-3">
-                  📧 Check your email for the magic link to login!
-                </p>
-                <p className="text-xs text-gray-600 mt-2">
-                  Click the link in the email to access your dashboard at /onboarding
-                </p>
+                <div className="mt-3 space-y-2">
+                  <p className="text-green-600 font-semibold">
+                    🎉 Account created! You can now log in using:
+                  </p>
+                  <ul className="list-disc list-inside text-gray-700 space-y-1 ml-2">
+                    <li>📧 Magic link (check your email)</li>
+                    <li>🔑 Email & password at <a href="/login" className="text-primary-500 hover:underline">/login</a></li>
+                  </ul>
+                </div>
               </div>
             </div>
           )}
@@ -161,11 +182,16 @@ export default function TestSignupPage() {
           <div className="mt-8 p-4 bg-blue-50 rounded-lg">
             <h3 className="font-bold text-blue-900 mb-2">📋 Testing Instructions</h3>
             <ol className="text-sm text-blue-800 space-y-2">
-              <li>1. Enter your real email address (you'll receive a magic link)</li>
-              <li>2. Choose a metabolism type and plan</li>
-              <li>3. Click "Create Free Test Account"</li>
-              <li>4. Check your email for the login link</li>
-              <li>5. Click the link to access /onboarding</li>
+              <li>1. Enter your real email address</li>
+              <li>2. Set a password (you can use this to log in anytime)</li>
+              <li>3. Choose a metabolism type and plan</li>
+              <li>4. Click "Create Free Test Account"</li>
+              <li>5. Log in using:
+                <ul className="list-disc list-inside ml-4 mt-1">
+                  <li>Magic link from your email, OR</li>
+                  <li>Email & password at /login</li>
+                </ul>
+              </li>
               <li>6. Complete onboarding and access the dashboard!</li>
             </ol>
           </div>

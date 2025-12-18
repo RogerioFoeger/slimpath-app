@@ -43,6 +43,7 @@ Use this checklist before deploying to production.
 ### Testing
 
 - [ ] Sign up flow tested end-to-end
+- [ ] **NEW:** Sign up with existing email auto-signs in (see `TEST_AUTH_FIX.md`)
 - [ ] Login/logout works correctly
 - [ ] Onboarding completes successfully
 - [ ] Dashboard loads with all features
