@@ -35,7 +35,7 @@ export function usePushNotifications() {
         userVisibleOnly: true,
         applicationServerKey: base64ToUint8Array(
           process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-        ),
+        ) as BufferSource,
       })
 
       // Save subscription to database

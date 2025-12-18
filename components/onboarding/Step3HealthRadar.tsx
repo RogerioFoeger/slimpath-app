@@ -49,7 +49,7 @@ export function Step3HealthRadar({ onNext, onBack }: Step3HealthRadarProps) {
           Health & Safety First
         </h2>
         <p className="text-gray-600">
-          SlimPath needs to know what's already working in your body to avoid conflicts.
+          SlimPath needs to know what&apos;s already working in your body to avoid conflicts.
         </p>
       </div>
 

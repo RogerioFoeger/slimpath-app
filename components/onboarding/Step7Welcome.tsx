@@ -52,7 +52,7 @@ export function Step7Welcome({ userName, profileType, onStart }: Step7WelcomePro
             <strong>Your {profileType} Type Unlock Plan has been generated.</strong>
           </p>
           <p className="text-sm text-gray-600">
-            Over the next 30 days, you'll receive daily missions, personalized 
+            Over the next 30 days, you&apos;ll receive daily missions, personalized 
             nutrition guidance, and targeted workouts designed specifically for your profile.
           </p>
         </div>
@@ -121,7 +121,7 @@ export function Step7Welcome({ userName, profileType, onStart }: Step7WelcomePro
       </Button>
 
       <p className="text-center text-sm text-gray-500">
-        Remember: Consistency beats perfection. You've got this! 💪
+        Remember: Consistency beats perfection. You&apos;ve got this! 💪
       </p>
     </div>
   )

@@ -29,7 +29,7 @@ export function DailyChecklist({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Today's Checklist</CardTitle>
+          <CardTitle>Today&apos;s Checklist</CardTitle>
           <div className="flex items-center gap-2 bg-gradient-secondary text-white px-3 py-1 rounded-full">
             <span className="text-2xl">⭐</span>
             <span className="font-bold">{slimPoints}</span>
@@ -54,7 +54,7 @@ export function DailyChecklist({
                 Congratulations! 🎉
               </p>
               <p className="text-sm text-green-700">
-                You've earned +1 Slim Point! Keep up the great work!
+                You&apos;ve earned +1 Slim Point! Keep up the great work!
               </p>
             </div>
           </div>

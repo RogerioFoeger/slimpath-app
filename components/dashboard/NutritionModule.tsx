@@ -23,7 +23,7 @@ export function NutritionModule({ profileContent }: NutritionModuleProps) {
         <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-4 rounded-xl border-2 border-yellow-300">
           <div className="flex items-center gap-2 mb-3">
             <Star className="w-5 h-5 text-yellow-600 fill-yellow-600" />
-            <h3 className="font-bold text-yellow-900">Today's Star Food</h3>
+            <h3 className="font-bold text-yellow-900">Today&apos;s Star Food</h3>
           </div>
           
           <div className="bg-white/80 p-3 rounded-lg">
@@ -61,7 +61,7 @@ export function NutritionModule({ profileContent }: NutritionModuleProps) {
         <div className="bg-secondary-50 p-3 rounded-lg">
           <p className="text-sm text-gray-700">
             💡 <strong>Remember:</strong> These foods are specifically chosen 
-            to support your body's unique needs and help overcome your metabolic challenges.
+            to support your body&apos;s unique needs and help overcome your metabolic challenges.
           </p>
         </div>
       </CardContent>

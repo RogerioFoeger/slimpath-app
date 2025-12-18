@@ -56,7 +56,7 @@ export function LeanTrainer({ message, microChallenge }: LeanTrainerProps) {
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="w-5 h-5" />
-            <span className="font-semibold text-sm">Today's Micro-Challenge</span>
+            <span className="font-semibold text-sm">Today&apos;s Micro-Challenge</span>
           </div>
           <p className="text-white/90">{microChallenge}</p>
         </div>

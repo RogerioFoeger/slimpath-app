@@ -202,7 +202,7 @@ export default function AdminPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Lean's Message
+                      Lean&apos;s Message
                     </label>
                     <textarea
                       value={editingContent.lean_message || ''}

@@ -49,7 +49,7 @@ export function MoodCheckin({ todayCheckins, onCheckin }: MoodCheckinProps) {
         {/* Show completed check-ins */}
         {todayCheckins.length > 0 && (
           <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-700">Today's Check-ins:</p>
+            <p className="text-sm font-medium text-gray-700">Today&apos;s Check-ins:</p>
             <div className="flex gap-2 flex-wrap">
               {todayCheckins.map((checkin, index) => {
                 const timeInfo = TIMES_OF_DAY.find((t) => t.value === checkin.time_of_day)

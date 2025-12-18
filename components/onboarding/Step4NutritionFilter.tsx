@@ -40,8 +40,8 @@ export function Step4NutritionFilter({ onNext, onBack, profileType }: Step4Nutri
           Nutrition Preferences
         </h2>
         <p className="text-gray-600">
-          I'll create meal plans to unlock your {profileType} Type. 
-          Is there anything you can't or don't want to eat?
+          I&apos;ll create meal plans to unlock your {profileType} Type. 
+          Is there anything you can&apos;t or don&apos;t want to eat?
         </p>
       </div>
 
@@ -63,7 +63,7 @@ export function Step4NutritionFilter({ onNext, onBack, profileType }: Step4Nutri
 
         <div className="bg-secondary-50 p-3 rounded-lg mt-4">
           <p className="text-sm text-gray-700">
-            💡 <strong>No one follows a diet with food they don't like!</strong> 
+            💡 <strong>No one follows a diet with food they don&apos;t like!</strong> 
             Your meal plans will respect your preferences while helping you reach your goals.
           </p>
         </div>

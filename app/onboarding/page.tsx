@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { OnboardingLayout } from '@/components/onboarding/OnboardingLayout'
 import { Step1Welcome } from '@/components/onboarding/Step1Welcome'
@@ -15,7 +15,7 @@ import { UserProfileType, OnboardingStep2Data, OnboardingStep3Data, OnboardingSt
 import { calculateBMI } from '@/lib/utils'
 import { toast } from 'sonner'
 
-export default function OnboardingPage() {
+function OnboardingPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [currentStep, setCurrentStep] = useState(1)
@@ -275,6 +275,14 @@ export default function OnboardingPage() {
         />
       )}
     </OnboardingLayout>
+  )
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center"><div className="text-lg">Loading...</div></div>}>
+      <OnboardingPageContent />
+    </Suspense>
   )
 }
 

@@ -135,7 +135,7 @@ export default function TestSignupPage() {
                 <option value="annual">Annual ($297/yr)</option>
               </select>
               <p className="text-xs text-gray-500 mt-1">
-                Don't worry - this is FREE for testing! No payment required.
+                Don&apos;t worry - this is FREE for testing! No payment required.
               </p>
             </div>
 
@@ -185,7 +185,7 @@ export default function TestSignupPage() {
               <li>1. Enter your real email address</li>
               <li>2. Set a password (you can use this to log in anytime)</li>
               <li>3. Choose a metabolism type and plan</li>
-              <li>4. Click "Create Free Test Account"</li>
+              <li>4. Click &quot;Create Free Test Account&quot;</li>
               <li>5. Log in using:
                 <ul className="list-disc list-inside ml-4 mt-1">
                   <li>Magic link from your email, OR</li>

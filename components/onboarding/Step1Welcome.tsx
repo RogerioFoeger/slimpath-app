@@ -45,12 +45,12 @@ export function Step1Welcome({ profileType, userName, onNext }: Step1WelcomeProp
           </h1>
           
           <p className="text-gray-700 mb-4">
-            I'm Lean, your AI health companion. I'm excited to have you here!
+            I&apos;m Lean, your AI health companion. I&apos;m excited to have you here!
           </p>
 
           <div className="bg-primary-50 p-4 rounded-lg mb-4">
             <p className="text-sm text-gray-700">
-              I've retrieved the analysis from our Scanner and confirmed your profile is:
+              I&apos;ve retrieved the analysis from our Scanner and confirmed your profile is:
             </p>
             <div className="flex items-center gap-3 mt-3">
               <span className="text-3xl">{profile.icon}</span>
@@ -69,7 +69,7 @@ export function Step1Welcome({ profileType, userName, onNext }: Step1WelcomeProp
           </p>
 
           <p className="text-gray-600 text-sm mt-4">
-            Let's get started! This will only take 2 minutes.
+            Let&apos;s get started! This will only take 2 minutes.
           </p>
         </motion.div>
       </Card>

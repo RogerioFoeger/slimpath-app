@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { toast } from 'sonner'
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -240,6 +240,14 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center"><div className="text-lg">Loading...</div></div>}>
+      <LoginPageContent />
+    </Suspense>
   )
 }
 
