@@ -16,8 +16,12 @@ export async function POST(request: NextRequest) {
   try {
     // Verify webhook secret
     const webhookSecret = request.headers.get('x-webhook-secret')
-    if (webhookSecret !== process.env.WEBHOOK_SECRET) {
+    const expectedSecret = process.env.WEBHOOK_SECRET || process.env.NEXT_PUBLIC_WEBHOOK_SECRET
+    
+    if (webhookSecret !== expectedSecret) {
       console.error('Webhook secret mismatch')
+      console.log('Received:', webhookSecret)
+      console.log('Expected:', expectedSecret)
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
