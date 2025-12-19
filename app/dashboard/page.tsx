@@ -15,7 +15,7 @@ import { ProgressBar } from '@/components/ui/ProgressBar'
 import { BONUS_UNLOCK_THRESHOLD } from '@/lib/constants'
 import { getGreeting, getTodayString } from '@/lib/utils'
 import { toast } from 'sonner'
-import { LogOut, Bell, BellOff, Award } from 'lucide-react'
+import { LogOut, Bell, BellOff, Award, Gift } from 'lucide-react'
 import { usePushNotifications } from '@/lib/hooks/usePushNotifications'
 
 export default function DashboardPage() {
@@ -220,7 +220,38 @@ export default function DashboardPage() {
         toast.success('🎉 +1 Slim Point earned!')
         
         if (shouldUnlockBonus) {
-          toast.success('🎁 Bonus content unlocked!')
+          // Fetch eligible bonuses and auto-unlock them
+          const { data: eligibleBonuses } = await supabase
+            .from('bonus_content')
+            .select('id')
+            .eq('is_active', true)
+            .lte('unlock_points', newPoints)
+
+          if (eligibleBonuses && eligibleBonuses.length > 0) {
+            // Get already unlocked bonuses
+            const { data: alreadyUnlocked } = await supabase
+              .from('user_bonus_unlocks')
+              .select('bonus_content_id')
+              .eq('user_id', user.id)
+
+            const unlockedIds = alreadyUnlocked?.map(u => u.bonus_content_id) || []
+            
+            // Create unlock records for new bonuses
+            const newUnlocks = eligibleBonuses
+              .filter(b => !unlockedIds.includes(b.id))
+              .map(b => ({
+                user_id: user.id,
+                bonus_content_id: b.id,
+              }))
+
+            if (newUnlocks.length > 0) {
+              await supabase
+                .from('user_bonus_unlocks')
+                .insert(newUnlocks)
+            }
+          }
+
+          toast.success('🎁 Bonus content unlocked! Check your rewards page!')
         }
       }
 
@@ -311,6 +342,14 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/rewards')}
+              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-primary-500 to-secondary-500 text-white rounded-lg hover:shadow-lg transition-all"
+              title="View Your Rewards"
+            >
+              <Gift className="w-5 h-5" />
+              <span className="font-medium hidden sm:inline">Rewards</span>
+            </button>
             {isSupported && (
               <button
                 onClick={handleNotificationToggle}
@@ -356,11 +395,20 @@ export default function DashboardPage() {
               showLabel
               color="secondary"
             />
-            <p className="text-sm text-white/90 mt-2">
-              {user.bonus_unlocked
-                ? '🎉 Bonus unlocked! Check your rewards.'
-                : `${BONUS_UNLOCK_THRESHOLD - user.slim_points} points until bonus unlock`}
-            </p>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-sm text-white/90">
+                {user.bonus_unlocked
+                  ? '🎉 Bonus unlocked! Check your rewards.'
+                  : `${BONUS_UNLOCK_THRESHOLD - user.slim_points} points until bonus unlock`}
+              </p>
+              <button
+                onClick={() => router.push('/rewards')}
+                className="text-sm text-white/90 hover:text-white underline flex items-center gap-1"
+              >
+                <Gift className="w-4 h-4" />
+                View Rewards
+              </button>
+            </div>
           </div>
         </Card>
 
