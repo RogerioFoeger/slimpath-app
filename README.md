@@ -30,7 +30,7 @@ A comprehensive Progressive Web App built with Next.js, Supabase, and PostgreSQL
 
 - Node.js 18+ and npm/yarn
 - Supabase account
-- GoDaddy domain (slimpathai.com) configured
+- Vercel account for deployment
 - VAPID keys for push notifications
 
 ## 🛠️ Installation
@@ -55,7 +55,7 @@ A comprehensive Progressive Web App built with Next.js, Supabase, and PostgreSQL
    SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
    # App Configuration
-   NEXT_PUBLIC_APP_URL=https://slimpathai.com
+   NEXT_PUBLIC_APP_URL=https://slimpathaiapp.vercel.app
    NEXT_PUBLIC_SITE_NAME=SlimPath AI
 
    # Webhook Secret
@@ -122,7 +122,7 @@ The application uses the following main tables:
 Configure your payment platform (Cartpanda/Kirvano) to send webhooks to:
 
 ```
-POST https://slimpathai.com/api/webhook
+POST https://slimpathaiapp.vercel.app/api/webhook
 ```
 
 **Webhook Payload:**

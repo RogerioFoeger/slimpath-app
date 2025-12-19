@@ -11,7 +11,7 @@ Before starting, ensure you have:
 - ✅ Node.js 18+ installed
 - ✅ npm or yarn package manager
 - ✅ A Supabase account (free tier works)
-- ✅ GoDaddy domain (slimpathai.com) with DNS access
+- ✅ Vercel account for deployment
 - ✅ Basic knowledge of Next.js and SQL
 
 ## 2️⃣ Initial Setup
@@ -177,10 +177,9 @@ VALUES (
    - Go to Vercel Dashboard > Your Project > Settings > Environment Variables
    - Add all variables from `.env.local`
 
-4. **Connect Domain**
-   - In Vercel: Settings > Domains
-   - Add `slimpathai.com`
-   - Update DNS records as instructed
+4. **Deploy to Vercel**
+   - Vercel will auto-assign domain: `slimpathaiapp.vercel.app`
+   - Or add custom domain in Settings > Domains
 
 5. **Deploy to Production**
    ```bash
@@ -206,28 +205,23 @@ VALUES (
 
 ## 7️⃣ Post-Deployment Setup
 
-### DNS Configuration (GoDaddy)
+### Domain Configuration (Optional)
 
-Add these DNS records:
+Your app is already live at `https://slimpathaiapp.vercel.app`
 
-```
-Type: A
-Name: @
-Value: [Your server IP or Vercel IP]
-
-Type: CNAME
-Name: www
-Value: slimpathai.com
-```
+If you want a custom domain:
+1. Go to Vercel → Project → Settings → Domains
+2. Add your custom domain
+3. Follow Vercel's DNS instructions for your domain provider
 
 ### SSL Certificate
 
-- Vercel: Automatic SSL
-- Manual: Use Let's Encrypt
+- Vercel: Automatic SSL (already enabled)
+- Custom domains: Vercel handles SSL automatically
 
 ### Email Configuration
 
-Set up SPF/DKIM records for `support@slimpathai.com` in GoDaddy DNS.
+Set up SPF/DKIM records for `support@slimpathai.com` with your email provider for better deliverability.
 
 ## 8️⃣ Testing Checklist
 
@@ -267,7 +261,7 @@ Add to `vercel.json`:
 
 Use [cron-job.org](https://cron-job.org) to hit:
 ```
-POST https://slimpathai.com/api/push/send
+POST https://slimpathaiapp.vercel.app/api/push/send
 ```
 Daily at 8:00 AM
 

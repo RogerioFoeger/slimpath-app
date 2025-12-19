@@ -31,6 +31,11 @@ export async function POST(request: NextRequest) {
     const payload = await request.json()
     console.log('Webhook payload received:', { ...payload, email: payload.email })
 
+    // Get the current URL dynamically from the request
+    const host = request.headers.get('host') || 'localhost:3000'
+    const protocol = host.includes('localhost') ? 'http' : 'https'
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`
+
     // Extract user data from webhook payload
     const {
       email,
@@ -224,11 +229,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Send magic link
-    console.log(`Sending magic link to ${email}`)
+    const redirectUrl = `${baseUrl}/onboarding`
+    console.log(`Sending magic link to ${email} with redirect to ${redirectUrl}`)
     const { error: magicLinkError } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/onboarding`,
+        emailRedirectTo: redirectUrl,
       },
     })
 

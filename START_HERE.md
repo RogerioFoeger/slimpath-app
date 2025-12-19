@@ -197,8 +197,8 @@ SLIMPATH/
 
 ### Week 4: Launch
 - [ ] Complete DEPLOYMENT_CHECKLIST.md
-- [ ] Deploy to Vercel
-- [ ] Connect domain (slimpathai.com)
+- [ ] Deploy to Vercel (slimpathaiapp.vercel.app)
+- [ ] Configure environment variables in Vercel
 - [ ] Configure payment webhook
 - [ ] Test end-to-end
 - [ ] Go live! 🚀
