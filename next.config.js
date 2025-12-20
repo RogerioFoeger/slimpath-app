@@ -17,7 +17,7 @@ const nextConfig = {
     return config;
   },
   images: {
-    domains: ['localhost'],
+    domains: ['localhost', 'slimpathai.com'],
     unoptimized: process.env.NODE_ENV === 'development',
   },
   async headers() {

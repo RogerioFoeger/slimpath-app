@@ -1,7 +1,7 @@
 // Test script to simulate CartPanda webhook
 // This tests the payment integration without needing access to CartPanda
 
-const WEBHOOK_URL = 'https://slimpathaiapp.vercel.app/api/webhook'
+const WEBHOOK_URL = 'https://slimpathai.com/api/webhook'
 // Get your webhook secret from Vercel environment variables
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'c10aad307d39238febc6d4085a4a86f1bdd7729df99327bfe77c50e2c4de1b23'
 
