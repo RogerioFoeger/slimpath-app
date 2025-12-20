@@ -31,10 +31,9 @@ export async function POST(request: NextRequest) {
     const payload = await request.json()
     console.log('Webhook payload received:', { ...payload, email: payload.email })
 
-    // Get the current URL dynamically from the request
-    const host = request.headers.get('host') || 'localhost:3000'
-    const protocol = host.includes('localhost') ? 'http' : 'https'
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`
+    // Get the current URL - prioritize environment variable, then use production domain
+    // Default to production domain to prevent localhost redirects
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://slimpathai.com'
 
     // Extract user data from webhook payload
     const {
