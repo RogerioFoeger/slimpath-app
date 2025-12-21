@@ -48,11 +48,11 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50">
       {/* Hero Section */}
       <header className="container mx-auto px-4 py-16 text-center">
-        <div className="mx-auto mb-8 inline-block">
+        <div className="mx-auto mb-8 text-center">
           <img 
             src="/logo.png" 
             alt="SlimPath AI Logo" 
-            className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 object-contain drop-shadow-2xl"
+            className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 object-contain drop-shadow-2xl mx-auto"
             width="192"
             height="192"
             loading="eager"
@@ -137,11 +137,15 @@ export default function HomePage() {
           </Card>
 
           <Card className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 relative">
+            <div className="mx-auto mb-4 inline-block">
               <img 
                 src="/logo.png" 
                 alt="Lean AI Coach" 
-                className="w-full h-full object-contain"
+                className="w-16 h-16 object-contain"
+                width="64"
+                height="64"
+                loading="lazy"
+                style={{ display: 'block' }}
               />
             </div>
             <h3 className="text-xl font-bold mb-2">AI Coach - Lean</h3>
