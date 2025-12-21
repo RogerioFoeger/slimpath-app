@@ -174,22 +174,25 @@ function LoginPageContent() {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-6 md:mb-8">
-          <div className="mx-auto mb-4 inline-block">
-            <img 
-              src="/logo.png" 
-              alt="SlimPath AI Logo" 
-              className="w-24 h-24 sm:w-32 sm:h-32 object-contain drop-shadow-lg"
-              width="128"
-              height="128"
-              loading="eager"
-              decoding="async"
-              style={{ display: 'block' }}
-            />
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold gradient-text mb-2">SlimPath AI</h1>
-          <p className="text-sm sm:text-base text-gray-600">Your Personal Weight Loss Journey</p>
+        <div className="text-center mb-6 md:mb-8" style={{ overflow: 'hidden' }}>
+          <img 
+            src="/logo.png" 
+            alt="SlimPath AI Logo" 
+            width="128"
+            height="128"
+            style={{ 
+              width: '96px',
+              height: '96px',
+              display: 'inline-block',
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 10px 15px -3px rgba(0, 0, 0, 0.1))'
+            }}
+            loading="eager"
+            decoding="async"
+          />
         </div>
+        <h1 className="text-2xl sm:text-3xl font-bold gradient-text mb-2">SlimPath AI</h1>
+        <p className="text-sm sm:text-base text-gray-600">Your Personal Weight Loss Journey</p>
 
         <Card>
           <form onSubmit={handleAuth} className="space-y-6">

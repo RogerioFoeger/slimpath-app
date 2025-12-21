@@ -23,19 +23,23 @@ export function Step1Welcome({ profileType, userName, onNext }: Step1WelcomeProp
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', duration: 0.8 }}
+        style={{ overflow: 'hidden' }}
       >
-        <div className="inline-block">
-          <img 
-            src="/logo.png" 
-            alt="Lean AI Coach" 
-            className="w-24 h-24 sm:w-32 sm:h-32 object-contain drop-shadow-2xl"
-            width="128"
-            height="128"
-            loading="eager"
-            decoding="async"
-            style={{ display: 'block' }}
-          />
-        </div>
+        <img 
+          src="/logo.png" 
+          alt="Lean AI Coach" 
+          width="128"
+          height="128"
+          style={{ 
+            width: '128px',
+            height: '128px',
+            display: 'block',
+            objectFit: 'contain',
+            filter: 'drop-shadow(0 25px 50px -12px rgba(0, 0, 0, 0.25))'
+          }}
+          loading="eager"
+          decoding="async"
+        />
       </motion.div>
 
       {/* Welcome Message */}
