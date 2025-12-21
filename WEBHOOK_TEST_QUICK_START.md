@@ -1,7 +1,7 @@
 # 🚀 Quick Start: Test Your Payment Integration
 
 ## Step 1: Get Your Webhook Secret
-
+------
 Go to your Vercel dashboard:
 1. Visit https://vercel.com
 2. Select your **slimpathaiapp** project
