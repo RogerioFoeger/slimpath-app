@@ -31,9 +31,25 @@ export async function POST(request: NextRequest) {
     const payload = await request.json()
     console.log('Webhook payload received:', { ...payload, email: payload.email })
 
-    // Get the current URL - prioritize environment variable, then use production domain
-    // Default to production domain to prevent localhost redirects
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://slimpathai.com'
+    // Get the current URL - prioritize environment variable, then detect from request, then use production domain
+    // This ensures magic links always redirect to the correct domain, not localhost
+    let baseUrl = process.env.NEXT_PUBLIC_APP_URL
+    
+    // If not set, try to detect from request headers (for preview deployments)
+    if (!baseUrl) {
+      const host = request.headers.get('host')
+      if (host && !host.includes('localhost')) {
+        const protocol = request.headers.get('x-forwarded-proto') || 'https'
+        baseUrl = `${protocol}://${host}`
+      }
+    }
+    
+    // Final fallback to production domain (never use localhost)
+    if (!baseUrl) {
+      baseUrl = 'https://slimpathai.com'
+    }
+    
+    console.log(`Using base URL for redirects: ${baseUrl}`)
 
     // Extract user data from webhook payload
     const {
