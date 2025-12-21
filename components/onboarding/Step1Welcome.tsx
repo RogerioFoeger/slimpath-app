@@ -24,11 +24,16 @@ export function Step1Welcome({ profileType, userName, onNext }: Step1WelcomeProp
         animate={{ scale: 1 }}
         transition={{ type: 'spring', duration: 0.8 }}
       >
-        <div className="w-32 h-32 relative">
+        <div className="inline-block">
           <img 
             src="/logo.png" 
             alt="Lean AI Coach" 
-            className="w-full h-full object-contain drop-shadow-2xl"
+            className="w-24 h-24 sm:w-32 sm:h-32 object-contain drop-shadow-2xl"
+            width="128"
+            height="128"
+            loading="eager"
+            decoding="async"
+            style={{ display: 'block' }}
           />
         </div>
       </motion.div>

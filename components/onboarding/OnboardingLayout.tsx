@@ -18,11 +18,15 @@ export function OnboardingLayout({ children, currentStep, totalSteps }: Onboardi
       <header className="p-6">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 relative">
+            <div className="inline-block">
               <img 
                 src="/logo.png" 
                 alt="SlimPath AI Logo" 
-                className="w-full h-full object-contain"
+                className="w-10 h-10 object-contain"
+                width="40"
+                height="40"
+                loading="eager"
+                style={{ display: 'block' }}
               />
             </div>
             <span className="text-xl font-bold gradient-text">SlimPath AI</span>

@@ -48,11 +48,16 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50">
       {/* Hero Section */}
       <header className="container mx-auto px-4 py-16 text-center">
-        <div className="w-48 h-48 mx-auto mb-8 relative">
+        <div className="mx-auto mb-8 inline-block">
           <img 
             src="/logo.png" 
             alt="SlimPath AI Logo" 
-            className="w-full h-full object-contain drop-shadow-2xl"
+            className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 object-contain drop-shadow-2xl"
+            width="192"
+            height="192"
+            loading="eager"
+            decoding="async"
+            style={{ display: 'block' }}
           />
         </div>
 
