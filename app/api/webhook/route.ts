@@ -26,10 +26,37 @@ const supabaseAnon = createClient(
 )
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+  let payload: any = null
+  
   try {
+    console.log('🔔 Webhook received at:', new Date().toISOString())
+    console.log('📍 Request URL:', request.url)
+    console.log('📍 Request headers:', {
+      host: request.headers.get('host'),
+      'content-type': request.headers.get('content-type'),
+      'x-webhook-secret': request.headers.get('x-webhook-secret') ? '***present***' : 'missing',
+    })
+
     // Read payload first (needed for CartPanda which doesn't support custom headers)
-    const payload = await request.json()
-    console.log('Webhook payload received:', { ...payload, email: payload.email })
+    try {
+      payload = await request.json()
+      console.log('📦 Payload received:', {
+        email: payload.email,
+        name: payload.name,
+        profile_type: payload.profile_type,
+        subscription_plan: payload.subscription_plan,
+        has_webhook_secret: !!payload.webhook_secret,
+        has_secret: !!payload.secret,
+        has_auth_token: !!payload.auth_token,
+      })
+    } catch (parseError: any) {
+      console.error('❌ Failed to parse JSON payload:', parseError.message)
+      return NextResponse.json(
+        { error: 'Invalid JSON payload', details: parseError.message },
+        { status: 400 }
+      )
+    }
 
     // Verify webhook secret - check body first (for CartPanda), then header (for backward compatibility)
     const webhookSecret = 
@@ -39,15 +66,27 @@ export async function POST(request: NextRequest) {
       request.headers.get('x-webhook-secret')
     const expectedSecret = process.env.WEBHOOK_SECRET || process.env.NEXT_PUBLIC_WEBHOOK_SECRET
     
+    console.log('🔐 Secret check:', {
+      received_from_body: !!(payload.webhook_secret || payload.secret || payload.auth_token),
+      received_from_header: !!request.headers.get('x-webhook-secret'),
+      expected_secret_set: !!expectedSecret,
+    })
+    
     if (webhookSecret !== expectedSecret) {
-      console.error('Webhook secret mismatch')
-      console.log('Received:', webhookSecret ? webhookSecret.substring(0, 5) + '***' : 'null/undefined')
-      console.log('Expected:', expectedSecret ? expectedSecret.substring(0, 5) + '***' : 'null/undefined')
+      console.error('❌ Webhook secret mismatch')
+      console.error('Received:', webhookSecret ? webhookSecret.substring(0, 5) + '***' : 'null/undefined')
+      console.error('Expected:', expectedSecret ? expectedSecret.substring(0, 5) + '***' : 'null/undefined')
+      console.error('⚠️ Check that webhook_secret in payload matches WEBHOOK_SECRET in environment')
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { 
+          error: 'Unauthorized',
+          message: 'Webhook secret mismatch. Check that webhook_secret in payload matches your WEBHOOK_SECRET environment variable.'
+        },
         { status: 401 }
       )
     }
+    
+    console.log('✅ Webhook secret verified')
 
     // Get the current URL - prioritize environment variable, then detect from request, then use production domain
     // This ensures magic links always redirect to the correct domain, not localhost
@@ -85,12 +124,22 @@ export async function POST(request: NextRequest) {
     } = payload
 
     if (!email || !profile_type || !subscription_plan) {
-      console.error('Missing required fields:', { email, profile_type, subscription_plan })
+      console.error('❌ Missing required fields:', { 
+        email: email || 'MISSING', 
+        profile_type: profile_type || 'MISSING', 
+        subscription_plan: subscription_plan || 'MISSING' 
+      })
       return NextResponse.json(
-        { error: 'Missing required fields', received: { email, profile_type, subscription_plan } },
+        { 
+          error: 'Missing required fields', 
+          received: { email, profile_type, subscription_plan },
+          required: ['email', 'profile_type', 'subscription_plan']
+        },
         { status: 400 }
       )
     }
+    
+    console.log('✅ Required fields present')
 
     // Normalize inputs to match database enums
     const normalizedProfileType = profile_type.toLowerCase()
@@ -345,16 +394,42 @@ export async function POST(request: NextRequest) {
       console.error('   4. Rate limits are not exceeded')
     }
 
-    console.log(`✅ Webhook completed successfully for ${email}`)
+    const duration = Date.now() - startTime
+    console.log(`✅ Webhook completed successfully for ${email} in ${duration}ms`)
+    console.log(`📊 Summary:`, {
+      user_id: userId,
+      action: existingProfile ? 'updated' : 'created',
+      email_sent: 'check logs above',
+    })
+    
     return NextResponse.json({
       success: true,
       user_id: userId,
       message: existingProfile ? 'User updated successfully' : 'User created successfully',
+      duration_ms: duration,
     })
   } catch (error: any) {
-    console.error('Webhook error:', error)
+    const duration = Date.now() - startTime
+    console.error('❌ Webhook error after', duration, 'ms:', error)
+    console.error('Error stack:', error?.stack)
+    console.error('Error name:', error?.name)
+    console.error('Error message:', error?.message)
+    
+    // Log payload info for debugging (without sensitive data)
+    if (payload) {
+      console.error('Payload that caused error:', {
+        email: payload.email,
+        has_profile_type: !!payload.profile_type,
+        has_subscription_plan: !!payload.subscription_plan,
+      })
+    }
+    
     return NextResponse.json(
-      { error: 'Internal server error', details: error?.message || 'Unknown error' },
+      { 
+        error: 'Internal server error', 
+        details: error?.message || 'Unknown error',
+        timestamp: new Date().toISOString(),
+      },
       { status: 500 }
     )
   }

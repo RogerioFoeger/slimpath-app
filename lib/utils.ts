@@ -44,6 +44,33 @@ export function getTodayString(): string {
   return new Date().toISOString().split('T')[0]
 }
 
+/**
+ * Calculate the current day number based on onboarding completion date
+ * Day 1 is the day onboarding was completed
+ * @param completedAt - ISO date string of when onboarding was completed
+ * @returns Day number (1-30)
+ */
+export function calculateCurrentDay(completedAt: string | null | undefined): number {
+  if (!completedAt) return 1
+  
+  const startDate = new Date(completedAt)
+  const today = new Date()
+  
+  // Set both dates to midnight for accurate day calculation
+  startDate.setHours(0, 0, 0, 0)
+  today.setHours(0, 0, 0, 0)
+  
+  // Calculate days difference
+  const diffTime = today.getTime() - startDate.getTime()
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  
+  // Day 1 is the day onboarding was completed, so add 1
+  const currentDay = diffDays + 1
+  
+  // Cap at 30 days
+  return Math.min(Math.max(currentDay, 1), 30)
+}
+
 export function getDaysRemaining(endDate: string): number {
   const end = new Date(endDate)
   const today = new Date()

@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { BONUS_UNLOCK_THRESHOLD } from '@/lib/constants'
-import { getGreeting, getTodayString } from '@/lib/utils'
+import { getGreeting, getTodayString, calculateCurrentDay } from '@/lib/utils'
 import { toast } from 'sonner'
 import { LogOut, Bell, BellOff, Award, Gift } from 'lucide-react'
 import { usePushNotifications } from '@/lib/hooks/usePushNotifications'
@@ -91,6 +91,32 @@ export default function DashboardPage() {
           console.log('Onboarding not completed, redirecting...', { onboarding, onboardingError })
           router.push('/onboarding')
           return
+        }
+      }
+
+      // Calculate and update current_day based on onboarding completion date
+      if (onboarding?.completed_at) {
+        const calculatedDay = calculateCurrentDay(onboarding.completed_at)
+        
+        // Only update if the calculated day is different from stored day
+        if (calculatedDay !== userProfile.current_day) {
+          console.log(`Updating current_day from ${userProfile.current_day} to ${calculatedDay} based on completion date`)
+          
+          const { error: updateDayError } = await supabase
+            .from('users')
+            .update({ 
+              current_day: calculatedDay,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', authUser.id)
+          
+          if (updateDayError) {
+            console.error('Error updating current_day:', updateDayError)
+          } else {
+            // Update local userProfile to reflect the change
+            userProfile.current_day = calculatedDay
+            console.log(`✅ Updated to day ${calculatedDay}`)
+          }
         }
       }
 
