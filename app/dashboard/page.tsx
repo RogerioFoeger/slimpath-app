@@ -94,29 +94,21 @@ export default function DashboardPage() {
         }
       }
 
-      // Calculate and update current_day based on onboarding completion date
-      if (onboarding?.completed_at) {
-        const calculatedDay = calculateCurrentDay(onboarding.completed_at)
+      // Calculate current day dynamically based on onboarding completion date
+      const calculatedCurrentDay = calculateCurrentDay(onboarding?.completed_at || userProfile.created_at)
+      
+      // Update user's current_day in database if it's different (to keep it in sync)
+      if (calculatedCurrentDay !== userProfile.current_day) {
+        console.log(`Updating current_day from ${userProfile.current_day} to ${calculatedCurrentDay}`)
+        const { error: updateDayError } = await supabase
+          .from('users')
+          .update({ current_day: calculatedCurrentDay })
+          .eq('id', authUser.id)
         
-        // Only update if the calculated day is different from stored day
-        if (calculatedDay !== userProfile.current_day) {
-          console.log(`Updating current_day from ${userProfile.current_day} to ${calculatedDay} based on completion date`)
-          
-          const { error: updateDayError } = await supabase
-            .from('users')
-            .update({ 
-              current_day: calculatedDay,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', authUser.id)
-          
-          if (updateDayError) {
-            console.error('Error updating current_day:', updateDayError)
-          } else {
-            // Update local userProfile to reflect the change
-            userProfile.current_day = calculatedDay
-            console.log(`✅ Updated to day ${calculatedDay}`)
-          }
+        if (updateDayError) {
+          console.error('Error updating current_day:', updateDayError)
+        } else {
+          userProfile.current_day = calculatedCurrentDay
         }
       }
 
@@ -126,7 +118,7 @@ export default function DashboardPage() {
       const { data: content, error: contentError } = await supabase
         .from('daily_content')
         .select('*')
-        .eq('day_number', userProfile.current_day)
+        .eq('day_number', calculatedCurrentDay)
         .single()
 
       if (contentError) throw contentError
@@ -159,7 +151,7 @@ export default function DashboardPage() {
         .from('user_daily_progress')
         .select('*')
         .eq('user_id', authUser.id)
-        .eq('day_number', userProfile.current_day)
+        .eq('day_number', calculatedCurrentDay)
         .eq('date', today)
         .single()
 
@@ -170,7 +162,7 @@ export default function DashboardPage() {
           .from('user_daily_progress')
           .insert({
             user_id: authUser.id,
-            day_number: userProfile.current_day,
+            day_number: calculatedCurrentDay,
             date: today,
             tasks_completed: [],
             tasks_total: dailyTasks?.length || 0,

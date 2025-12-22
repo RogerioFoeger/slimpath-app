@@ -30,28 +30,17 @@ export async function POST(request: NextRequest) {
   let payload: any = null
   
   try {
-    console.log('🔔 Webhook received at:', new Date().toISOString())
-    console.log('📍 Request URL:', request.url)
-    console.log('📍 Request headers:', {
-      host: request.headers.get('host'),
-      'content-type': request.headers.get('content-type'),
-      'x-webhook-secret': request.headers.get('x-webhook-secret') ? '***present***' : 'missing',
-    })
-
     // Read payload first (needed for CartPanda which doesn't support custom headers)
     try {
       payload = await request.json()
-      console.log('📦 Payload received:', {
+      console.log('📥 Webhook payload received:', { 
         email: payload.email,
-        name: payload.name,
         profile_type: payload.profile_type,
         subscription_plan: payload.subscription_plan,
-        has_webhook_secret: !!payload.webhook_secret,
-        has_secret: !!payload.secret,
-        has_auth_token: !!payload.auth_token,
+        has_secret: !!(payload.webhook_secret || payload.secret || payload.auth_token)
       })
     } catch (parseError: any) {
-      console.error('❌ Failed to parse JSON payload:', parseError.message)
+      console.error('❌ Failed to parse webhook payload:', parseError.message)
       return NextResponse.json(
         { error: 'Invalid JSON payload', details: parseError.message },
         { status: 400 }
@@ -66,22 +55,21 @@ export async function POST(request: NextRequest) {
       request.headers.get('x-webhook-secret')
     const expectedSecret = process.env.WEBHOOK_SECRET || process.env.NEXT_PUBLIC_WEBHOOK_SECRET
     
-    console.log('🔐 Secret check:', {
-      received_from_body: !!(payload.webhook_secret || payload.secret || payload.auth_token),
-      received_from_header: !!request.headers.get('x-webhook-secret'),
-      expected_secret_set: !!expectedSecret,
-    })
+    if (!expectedSecret) {
+      console.error('❌ WEBHOOK_SECRET not configured in environment variables')
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      )
+    }
     
     if (webhookSecret !== expectedSecret) {
       console.error('❌ Webhook secret mismatch')
-      console.error('Received:', webhookSecret ? webhookSecret.substring(0, 5) + '***' : 'null/undefined')
-      console.error('Expected:', expectedSecret ? expectedSecret.substring(0, 5) + '***' : 'null/undefined')
-      console.error('⚠️ Check that webhook_secret in payload matches WEBHOOK_SECRET in environment')
+      console.error('Received:', webhookSecret ? `${webhookSecret.substring(0, 5)}***` : 'null/undefined')
+      console.error('Expected:', expectedSecret ? `${expectedSecret.substring(0, 5)}***` : 'null/undefined')
+      console.error('Payload keys:', Object.keys(payload))
       return NextResponse.json(
-        { 
-          error: 'Unauthorized',
-          message: 'Webhook secret mismatch. Check that webhook_secret in payload matches your WEBHOOK_SECRET environment variable.'
-        },
+        { error: 'Unauthorized', message: 'Invalid webhook secret' },
         { status: 401 }
       )
     }
@@ -124,22 +112,12 @@ export async function POST(request: NextRequest) {
     } = payload
 
     if (!email || !profile_type || !subscription_plan) {
-      console.error('❌ Missing required fields:', { 
-        email: email || 'MISSING', 
-        profile_type: profile_type || 'MISSING', 
-        subscription_plan: subscription_plan || 'MISSING' 
-      })
+      console.error('Missing required fields:', { email, profile_type, subscription_plan })
       return NextResponse.json(
-        { 
-          error: 'Missing required fields', 
-          received: { email, profile_type, subscription_plan },
-          required: ['email', 'profile_type', 'subscription_plan']
-        },
+        { error: 'Missing required fields', received: { email, profile_type, subscription_plan } },
         { status: 400 }
       )
     }
-    
-    console.log('✅ Required fields present')
 
     // Normalize inputs to match database enums
     const normalizedProfileType = profile_type.toLowerCase()
@@ -396,39 +374,23 @@ export async function POST(request: NextRequest) {
 
     const duration = Date.now() - startTime
     console.log(`✅ Webhook completed successfully for ${email} in ${duration}ms`)
-    console.log(`📊 Summary:`, {
-      user_id: userId,
-      action: existingProfile ? 'updated' : 'created',
-      email_sent: 'check logs above',
-    })
-    
     return NextResponse.json({
       success: true,
       user_id: userId,
       message: existingProfile ? 'User updated successfully' : 'User created successfully',
-      duration_ms: duration,
+      email_sent: true,
     })
   } catch (error: any) {
     const duration = Date.now() - startTime
     console.error('❌ Webhook error after', duration, 'ms:', error)
     console.error('Error stack:', error?.stack)
-    console.error('Error name:', error?.name)
-    console.error('Error message:', error?.message)
-    
-    // Log payload info for debugging (without sensitive data)
-    if (payload) {
-      console.error('Payload that caused error:', {
-        email: payload.email,
-        has_profile_type: !!payload.profile_type,
-        has_subscription_plan: !!payload.subscription_plan,
-      })
-    }
+    console.error('Payload received:', payload ? { email: payload.email } : 'No payload')
     
     return NextResponse.json(
       { 
         error: 'Internal server error', 
         details: error?.message || 'Unknown error',
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString()
       },
       { status: 500 }
     )

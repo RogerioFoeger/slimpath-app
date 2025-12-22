@@ -45,30 +45,27 @@ export function getTodayString(): string {
 }
 
 /**
- * Calculate the current day number based on onboarding completion date
- * Day 1 is the day onboarding was completed
- * @param completedAt - ISO date string of when onboarding was completed
- * @returns Day number (1-30)
+ * Calculate the current day of the user's journey
+ * @param startDate - The date when the user started their journey (onboarding completed_at or user created_at)
+ * @param maxDays - Maximum number of days in the program (default: 30)
+ * @returns The current day number (1-30)
  */
-export function calculateCurrentDay(completedAt: string | null | undefined): number {
-  if (!completedAt) return 1
+export function calculateCurrentDay(startDate: string | Date | null | undefined, maxDays: number = 30): number {
+  if (!startDate) return 1
   
-  const startDate = new Date(completedAt)
+  const start = new Date(startDate)
   const today = new Date()
   
-  // Set both dates to midnight for accurate day calculation
-  startDate.setHours(0, 0, 0, 0)
+  // Reset time to midnight for accurate day calculation
+  start.setHours(0, 0, 0, 0)
   today.setHours(0, 0, 0, 0)
   
   // Calculate days difference
-  const diffTime = today.getTime() - startDate.getTime()
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  const diffTime = today.getTime() - start.getTime()
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1 // +1 because day 1 is the start date
   
-  // Day 1 is the day onboarding was completed, so add 1
-  const currentDay = diffDays + 1
-  
-  // Cap at 30 days
-  return Math.min(Math.max(currentDay, 1), 30)
+  // Ensure day is between 1 and maxDays
+  return Math.max(1, Math.min(diffDays, maxDays))
 }
 
 export function getDaysRemaining(endDate: string): number {

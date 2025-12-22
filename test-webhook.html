@@ -45,15 +45,13 @@
             resultDiv.innerHTML = '⏳ Sending webhook...';
             resultDiv.className = '';
             
-            const secret = document.getElementById('secret').value;
             const payload = {
                 email: document.getElementById('email').value,
                 name: document.getElementById('name').value,
                 profile_type: document.getElementById('profile').value,
                 subscription_plan: document.getElementById('plan').value,
                 transaction_id: 'test_' + Date.now(),
-                amount: document.getElementById('plan').value === 'monthly' ? 37 : 297,
-                webhook_secret: secret  // Include secret in body for CartPanda compatibility
+                amount: document.getElementById('plan').value === 'monthly' ? 37 : 297
             };
             
             try {
@@ -61,8 +59,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        // Also include in header for backward compatibility
-                        'x-webhook-secret': secret
+                        'x-webhook-secret': document.getElementById('secret').value
                     },
                     body: JSON.stringify(payload)
                 });
@@ -87,10 +84,6 @@
                         <h3>❌ Error</h3>
                         <p><strong>Status:</strong> ${response.status}</p>
                         <p><strong>Error:</strong> ${data.error || 'Unknown error'}</p>
-                        ${data.message ? `<p><strong>Message:</strong> ${data.message}</p>` : ''}
-                        ${data.details ? `<p><strong>Details:</strong> ${data.details}</p>` : ''}
-                        ${data.required ? `<p><strong>Required fields:</strong> ${data.required.join(', ')}</p>` : ''}
-                        ${data.received ? `<p><strong>Received:</strong> ${JSON.stringify(data.received)}</p>` : ''}
                     `;
                 }
             } catch (error) {
