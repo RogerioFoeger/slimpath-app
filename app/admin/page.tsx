@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
@@ -15,7 +15,7 @@ type AdminTab = 'content' | 'bonuses'
 
 export default function AdminPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<AdminTab>('content')
   const [dailyContents, setDailyContents] = useState<DailyContent[]>([])
@@ -26,6 +26,88 @@ export default function AdminPage() {
   const [editingContent, setEditingContent] = useState<Partial<DailyContent> | null>(null)
   const [editingBonus, setEditingBonus] = useState<Partial<BonusContent> | null>(null)
   const [editingProfileContents, setEditingProfileContents] = useState<Record<UserProfileType, Partial<ProfileContent>>>({} as Record<UserProfileType, Partial<ProfileContent>>)
+
+  const checkAuthAndLoad = useCallback(async () => {
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      
+      if (authError || !user) {
+        console.error('Not authenticated:', authError)
+        toast.error('Please log in to access the admin panel')
+        router.push('/login')
+        return
+      }
+
+      setLoading(true)
+      
+      // Load daily content
+      try {
+        const { data: contentData, error: contentError } = await supabase
+          .from('daily_content')
+          .select('*')
+          .order('day_number')
+
+        if (contentError) {
+          console.error('Error loading daily content:', contentError)
+          toast.error(`Failed to load daily content: ${contentError.message}`)
+          setDailyContents([])
+        } else {
+          setDailyContents(contentData || [])
+        }
+      } catch (error: any) {
+        console.error('Unexpected error loading daily content:', error)
+        toast.error(`Failed to load daily content: ${error?.message || 'Unknown error'}`)
+        setDailyContents([])
+      }
+
+      // Load profile content (optional - might be empty)
+      try {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profile_content')
+          .select('*')
+          .order('daily_content_id', { ascending: true })
+
+        if (profileError) {
+          console.error('Error loading profile content:', profileError)
+          // Don't show error toast for profile content - it might not exist yet or table might be empty
+          console.warn('Profile content load failed (this is OK if table is empty):', profileError.message)
+          setProfileContents([])
+        } else {
+          setProfileContents(profileData || [])
+        }
+      } catch (error: any) {
+        console.error('Unexpected error loading profile content:', error)
+        // Silently fail for profile content - it's optional
+        setProfileContents([])
+      }
+
+      // Load bonus content
+      try {
+        const { data: bonusData, error: bonusError } = await supabase
+          .from('bonus_content')
+          .select('*')
+          .order('unlock_points')
+
+        if (bonusError) {
+          console.error('Error loading bonus content:', bonusError)
+          toast.error(`Failed to load bonus content: ${bonusError.message}`)
+          setBonusContents([])
+        } else {
+          setBonusContents(bonusData || [])
+        }
+      } catch (error: any) {
+        console.error('Unexpected error loading bonus content:', error)
+        toast.error(`Failed to load bonus content: ${error?.message || 'Unknown error'}`)
+        setBonusContents([])
+      }
+
+      setLoading(false)
+    } catch (error: any) {
+      console.error('Error checking authentication:', error)
+      toast.error('Failed to verify authentication')
+      setLoading(false)
+    }
+  }, [router, supabase])
 
   const loadContent = useCallback(async () => {
     setLoading(true)
@@ -93,25 +175,6 @@ export default function AdminPage() {
 
     setLoading(false)
   }, [supabase])
-
-  const checkAuthAndLoad = useCallback(async () => {
-    try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      
-      if (authError || !user) {
-        console.error('Not authenticated:', authError)
-        toast.error('Please log in to access the admin panel')
-        router.push('/login')
-        return
-      }
-
-      await loadContent()
-    } catch (error: any) {
-      console.error('Error checking authentication:', error)
-      toast.error('Failed to verify authentication')
-      setLoading(false)
-    }
-  }, [router, supabase, loadContent])
 
   useEffect(() => {
     checkAuthAndLoad()
