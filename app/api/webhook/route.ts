@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+// Admin client for user management
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -12,24 +13,41 @@ const supabase = createClient(
   }
 )
 
+// Anon client for sending emails (signInWithOtp works better with anon key)
+const supabaseAnon = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+)
+
 export async function POST(request: NextRequest) {
   try {
-    // Verify webhook secret
-    const webhookSecret = request.headers.get('x-webhook-secret')
+    // Read payload first (needed for CartPanda which doesn't support custom headers)
+    const payload = await request.json()
+    console.log('Webhook payload received:', { ...payload, email: payload.email })
+
+    // Verify webhook secret - check body first (for CartPanda), then header (for backward compatibility)
+    const webhookSecret = 
+      payload.webhook_secret || 
+      payload.secret || 
+      payload.auth_token ||
+      request.headers.get('x-webhook-secret')
     const expectedSecret = process.env.WEBHOOK_SECRET || process.env.NEXT_PUBLIC_WEBHOOK_SECRET
     
     if (webhookSecret !== expectedSecret) {
       console.error('Webhook secret mismatch')
-      console.log('Received:', webhookSecret)
-      console.log('Expected:', expectedSecret)
+      console.log('Received:', webhookSecret ? webhookSecret.substring(0, 5) + '***' : 'null/undefined')
+      console.log('Expected:', expectedSecret ? expectedSecret.substring(0, 5) + '***' : 'null/undefined')
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
-
-    const payload = await request.json()
-    console.log('Webhook payload received:', { ...payload, email: payload.email })
 
     // Get the current URL - prioritize environment variable, then detect from request, then use production domain
     // This ensures magic links always redirect to the correct domain, not localhost
@@ -51,7 +69,7 @@ export async function POST(request: NextRequest) {
     
     console.log(`Using base URL for redirects: ${baseUrl}`)
 
-    // Extract user data from webhook payload
+    // Extract user data from webhook payload (exclude secret fields)
     const {
       email,
       password,
@@ -60,6 +78,10 @@ export async function POST(request: NextRequest) {
       subscription_plan,
       transaction_id,
       amount,
+      // Exclude secret fields from user data
+      webhook_secret,
+      secret,
+      auth_token,
     } = payload
 
     if (!email || !profile_type || !subscription_plan) {
@@ -114,9 +136,13 @@ export async function POST(request: NextRequest) {
       const isTestUser = amount === 0 || amount === '0'
       const userPassword = password || (isTestUser ? 'TestUser123!' : undefined)
       
+      // For test users, don't auto-confirm email so magic link can confirm it
+      // For paid users, auto-confirm since they've already paid
+      const shouldAutoConfirm = !isTestUser
+      
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email,
-        email_confirm: true,
+        email_confirm: shouldAutoConfirm,
         password: userPassword,
         user_metadata: {
           full_name: name,
@@ -243,19 +269,80 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send magic link
+    // Send magic link email
     const redirectUrl = `${baseUrl}/onboarding`
-    console.log(`Sending magic link to ${email} with redirect to ${redirectUrl}`)
-    const { error: magicLinkError } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: redirectUrl,
-      },
-    })
+    console.log(`Sending magic link email to ${email} with redirect to ${redirectUrl}`)
+    
+    // Determine if user is confirmed (paid users are auto-confirmed, test users are not)
+    const isTestUser = amount === 0 || amount === '0'
+    const isUserConfirmed = !isTestUser
+    
+    try {
+      if (isUserConfirmed) {
+        // For confirmed users, use generateLink to create a magic link
+        // Then send it via signInWithOtp
+        const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+          type: 'magiclink',
+          email,
+          options: {
+            redirectTo: redirectUrl,
+          },
+        })
 
-    if (magicLinkError) {
-      console.error('Magic link error:', magicLinkError)
-      // Don't fail the request just because email failed
+        if (linkError) {
+          console.error('Error generating magic link for confirmed user:', linkError)
+          throw linkError
+        }
+
+        // Send the magic link email using anon client (better for email sending)
+        const { data: otpData, error: otpError } = await supabaseAnon.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: redirectUrl,
+            shouldCreateUser: false,
+          },
+        })
+
+        if (otpError) {
+          console.error('Error sending magic link email to confirmed user:', otpError)
+          throw otpError
+        }
+
+        console.log('✅ Magic link email sent successfully to confirmed user')
+      } else {
+        // For unconfirmed users (test users), signInWithOtp will send confirmation email
+        // Use anon client for better email delivery
+        const { data: otpData, error: otpError } = await supabaseAnon.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: redirectUrl,
+            shouldCreateUser: false,
+          },
+        })
+
+        if (otpError) {
+          console.error('Error sending magic link email to unconfirmed user:', otpError)
+          console.error('Full error object:', JSON.stringify(otpError, null, 2))
+          throw otpError
+        }
+
+        console.log('✅ Magic link confirmation email sent successfully to unconfirmed user')
+      }
+    } catch (error: any) {
+      console.error('❌ Failed to send magic link email:', error)
+      console.error('Error type:', error?.constructor?.name)
+      console.error('Error message:', error?.message)
+      console.error('Error status:', error?.status)
+      console.error('Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+      
+      // Log a clear warning
+      console.error('⚠️ WARNING: User account created successfully, but email notification failed!')
+      console.error('⚠️ User can still log in with email/password, but did not receive magic link email.')
+      console.error('⚠️ Please check:')
+      console.error('   1. Supabase email settings are configured')
+      console.error('   2. Email templates are set up in Supabase dashboard')
+      console.error('   3. SMTP settings are correct (if using custom SMTP)')
+      console.error('   4. Rate limits are not exceeded')
     }
 
     console.log(`✅ Webhook completed successfully for ${email}`)

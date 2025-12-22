@@ -133,15 +133,16 @@ POST https://slimpathaiapp.vercel.app/api/webhook
   "profile_type": "hormonal",
   "subscription_plan": "monthly",
   "transaction_id": "txn_123",
-  "amount": 37
+  "amount": 37,
+  "webhook_secret": "your_webhook_secret"
 }
 ```
 
-**Headers:**
-```
-x-webhook-secret: your_webhook_secret
-Content-Type: application/json
-```
+**Authentication Options:**
+- **Option 1 (Recommended for CartPanda):** Include `webhook_secret` in the JSON body
+- **Option 2 (Alternative):** Send `x-webhook-secret` header (if platform supports custom headers)
+
+**Note:** CartPanda doesn't support custom headers, so use `webhook_secret` in the payload body.
 
 ## 👨‍💼 Admin Panel
 
