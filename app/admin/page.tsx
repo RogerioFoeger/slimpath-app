@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
@@ -27,30 +27,7 @@ export default function AdminPage() {
   const [editingBonus, setEditingBonus] = useState<Partial<BonusContent> | null>(null)
   const [editingProfileContents, setEditingProfileContents] = useState<Record<UserProfileType, Partial<ProfileContent>>>({} as Record<UserProfileType, Partial<ProfileContent>>)
 
-  useEffect(() => {
-    checkAuthAndLoad()
-  }, [])
-
-  const checkAuthAndLoad = async () => {
-    try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      
-      if (authError || !user) {
-        console.error('Not authenticated:', authError)
-        toast.error('Please log in to access the admin panel')
-        router.push('/login')
-        return
-      }
-
-      await loadContent()
-    } catch (error: any) {
-      console.error('Error checking authentication:', error)
-      toast.error('Failed to verify authentication')
-      setLoading(false)
-    }
-  }
-
-  const loadContent = async () => {
+  const loadContent = useCallback(async () => {
     setLoading(true)
     
     // Load daily content
@@ -115,7 +92,30 @@ export default function AdminPage() {
     }
 
     setLoading(false)
-  }
+  }, [supabase])
+
+  const checkAuthAndLoad = useCallback(async () => {
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      
+      if (authError || !user) {
+        console.error('Not authenticated:', authError)
+        toast.error('Please log in to access the admin panel')
+        router.push('/login')
+        return
+      }
+
+      await loadContent()
+    } catch (error: any) {
+      console.error('Error checking authentication:', error)
+      toast.error('Failed to verify authentication')
+      setLoading(false)
+    }
+  }, [router, supabase, loadContent])
+
+  useEffect(() => {
+    checkAuthAndLoad()
+  }, [checkAuthAndLoad])
 
   const handleSaveContent = async () => {
     if (!editingContent) return
@@ -676,7 +676,7 @@ export default function AdminPage() {
                     <div className="bg-primary-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-700">
                         💡 Define profile-specific nutrition content for each type. All profile types are optional, 
-                        but it's recommended to fill them for a complete experience.
+                        but it&apos;s recommended to fill them for a complete experience.
                       </p>
                     </div>
                   </CardContent>

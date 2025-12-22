@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { User, DailyContent, DailyTask, ProfileContent, UserDailyProgress, MoodCheckin as MoodCheckinType, MoodType, TimeOfDay } from '@/lib/types'
@@ -31,11 +31,7 @@ export default function DashboardPage() {
   const [progress, setProgress] = useState<UserDailyProgress | null>(null)
   const [todayCheckins, setTodayCheckins] = useState<MoodCheckinType[]>([])
 
-  useEffect(() => {
-    loadDashboard()
-  }, [])
-
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser()
       
@@ -194,7 +190,11 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [router, supabase])
+
+  useEffect(() => {
+    loadDashboard()
+  }, [loadDashboard])
 
   const handleTaskToggle = async (taskId: string, completed: boolean) => {
     if (!user || !progress) return

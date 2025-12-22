@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { User, BonusContent } from '@/lib/types'
@@ -26,11 +26,7 @@ export default function RewardsPage() {
   const [allBonuses, setAllBonuses] = useState<BonusContent[]>([])
   const [unlockedBonusIds, setUnlockedBonusIds] = useState<string[]>([])
 
-  useEffect(() => {
-    loadRewards()
-  }, [])
-
-  const loadRewards = async () => {
+  const loadRewards = useCallback(async () => {
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser()
       
@@ -74,7 +70,11 @@ export default function RewardsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [router, supabase])
+
+  useEffect(() => {
+    loadRewards()
+  }, [loadRewards])
 
   const handleUnlockBonus = async (bonusId: string) => {
     if (!user) return

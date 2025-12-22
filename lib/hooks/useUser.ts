@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@/lib/types'
 
@@ -49,7 +49,7 @@ export function useUser() {
     return () => {
       subscription.unsubscribe()
     }
-  }, [])
+  }, [supabase])
 
   return { user, loading, refetch: async () => {
     const { data: { user: authUser } } = await supabase.auth.getUser()

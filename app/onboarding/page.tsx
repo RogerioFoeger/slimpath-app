@@ -86,7 +86,7 @@ function OnboardingPageContent() {
     }
 
     initOnboarding()
-  }, [])
+  }, [router, supabase])
 
   const handleStep2Complete = (data: OnboardingStep2Data) => {
     setOnboardingData(prev => ({ ...prev, step2: data }))
