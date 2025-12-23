@@ -16,7 +16,7 @@ const colors = {
   cyan: '\x1b[36m',
 }
 
-async function testWebhook(profileType = 'inflammatory', plan = 'monthly') {
+async function testWebhook(profileType = 'inflammatory', plan = 'monthly', useBodySecret = true) {
   const timestamp = Date.now()
   const payload = {
     email: `test-${timestamp}@example.com`,
@@ -27,20 +27,32 @@ async function testWebhook(profileType = 'inflammatory', plan = 'monthly') {
     amount: plan === 'monthly' ? 37 : 297
   }
 
+  // CartPanda format: webhook_secret in body (recommended)
+  // Alternative format: webhook_secret in header (backward compatibility)
+  if (useBodySecret) {
+    payload.webhook_secret = WEBHOOK_SECRET
+  }
+
   console.log(`${colors.cyan}🔄 Sending test webhook...${colors.reset}`)
+  console.log(`${colors.blue}Format:${colors.reset} ${useBodySecret ? 'CartPanda (webhook_secret in body)' : 'Header (x-webhook-secret)'}`)
   console.log(`${colors.blue}Payload:${colors.reset}`, JSON.stringify(payload, null, 2))
-  console.log(`${colors.blue}Headers:${colors.reset}`, {
-    'Content-Type': 'application/json',
-    'x-webhook-secret': WEBHOOK_SECRET.substring(0, 5) + '***'
-  })
+  
+  const headers = {
+    'Content-Type': 'application/json'
+  }
+  
+  if (!useBodySecret) {
+    headers['x-webhook-secret'] = WEBHOOK_SECRET
+    console.log(`${colors.blue}Headers:${colors.reset}`, {
+      'Content-Type': 'application/json',
+      'x-webhook-secret': WEBHOOK_SECRET.substring(0, 5) + '***'
+    })
+  }
 
   try {
     const response = await fetch(WEBHOOK_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-webhook-secret': WEBHOOK_SECRET
-      },
+      headers: headers,
       body: JSON.stringify(payload)
     })
 
@@ -150,7 +162,7 @@ async function testAllProfileTypes() {
   
   for (const type of types) {
     console.log(`\n${colors.yellow}=== Testing ${type.toUpperCase()} ===${colors.reset}`)
-    const success = await testWebhook(type, 'monthly')
+    const success = await testWebhook(type, 'monthly', true) // Use CartPanda format (webhook_secret in body)
     if (success) successCount++
     await new Promise(r => setTimeout(r, 2000)) // Wait 2s between tests
   }
@@ -164,11 +176,11 @@ async function testSubscriptionPlans() {
   console.log(`\n${colors.bright}${colors.cyan}💳 Testing both subscription plans${colors.reset}\n`)
   
   console.log(`\n${colors.yellow}=== Testing MONTHLY Plan ===${colors.reset}`)
-  const monthlySuccess = await testWebhook('inflammatory', 'monthly')
+  const monthlySuccess = await testWebhook('inflammatory', 'monthly', true) // Use CartPanda format
   await new Promise(r => setTimeout(r, 2000))
   
   console.log(`\n${colors.yellow}=== Testing ANNUAL Plan ===${colors.reset}`)
-  const annualSuccess = await testWebhook('inflammatory', 'annual')
+  const annualSuccess = await testWebhook('inflammatory', 'annual', true) // Use CartPanda format
   
   return monthlySuccess && annualSuccess
 }
@@ -240,7 +252,7 @@ async function runFullTestSuite() {
 // Quick single test
 async function quickTest() {
   console.log(`${colors.bright}${colors.cyan}🚀 Quick Test - Single Webhook${colors.reset}\n`)
-  await testWebhook('inflammatory', 'monthly')
+  await testWebhook('inflammatory', 'monthly', true) // Use CartPanda format
 }
 
 // Parse command line arguments

@@ -119,30 +119,36 @@ The application uses the following main tables:
 
 ## 🔧 Webhook Integration
 
+**📖 Complete Setup Guide:** See [`CARTPANDA_AUTO_REGISTRATION_SETUP.md`](./CARTPANDA_AUTO_REGISTRATION_SETUP.md) for detailed instructions.
+
 Configure your payment platform (Cartpanda/Kirvano) to send webhooks to:
 
 ```
-POST https://slimpathaiapp.vercel.app/api/webhook
+POST https://slimpathai.com/api/webhook
 ```
 
-**Webhook Payload:**
+**Webhook Payload (CartPanda Format):**
 ```json
 {
-  "email": "user@example.com",
-  "name": "John Doe",
+  "email": "{{customer_email}}",
+  "name": "{{customer_name}}",
   "profile_type": "hormonal",
   "subscription_plan": "monthly",
-  "transaction_id": "txn_123",
-  "amount": 37,
-  "webhook_secret": "your_webhook_secret"
+  "transaction_id": "{{order_id}}",
+  "amount": {{order_total}},
+  "webhook_secret": "YOUR_WEBHOOK_SECRET"
 }
 ```
 
-**Authentication Options:**
-- **Option 1 (Recommended for CartPanda):** Include `webhook_secret` in the JSON body
-- **Option 2 (Alternative):** Send `x-webhook-secret` header (if platform supports custom headers)
+**⚠️ Important:**
+- `webhook_secret` **MUST** be in the JSON body (CartPanda doesn't support custom headers)
+- `email`, `profile_type`, and `subscription_plan` are **REQUIRED**
+- Webhook should trigger **on successful payment**
 
-**Note:** CartPanda doesn't support custom headers, so use `webhook_secret` in the payload body.
+**Quick Verification:**
+```bash
+node verify-webhook-setup.js
+```
 
 ## 👨‍💼 Admin Panel
 

@@ -17,6 +17,8 @@ function LoginPageContent() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
+  const [isForgotPassword, setIsForgotPassword] = useState(false)
+  const [resetEmailSent, setResetEmailSent] = useState(false)
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -170,6 +172,34 @@ function LoginPageContent() {
     }
   }
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email) {
+      toast.error('Please enter your email address')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login?reset=true`,
+      })
+
+      if (error) {
+        // Even if user doesn't exist, don't reveal that for security
+        console.error('Password reset error:', error)
+        toast.error('If an account exists with this email, a password reset link has been sent.')
+      } else {
+        setResetEmailSent(true)
+        toast.success('Password reset link sent! Check your email.')
+      }
+    } catch (error: any) {
+      toast.error('Failed to send reset email. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -195,13 +225,15 @@ function LoginPageContent() {
         <p className="text-sm sm:text-base text-gray-600">Your Personal Weight Loss Journey</p>
 
         <Card>
-          <form onSubmit={handleAuth} className="space-y-6">
+          <form onSubmit={isForgotPassword ? handleForgotPassword : handleAuth} className="space-y-6">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
                 {isSignUp ? 'Create Account' : 'Welcome Back'}
               </h2>
               <p className="text-gray-600">
-                {isSignUp
+                {isForgotPassword
+                  ? 'Enter your email to receive a password reset link'
+                  : isSignUp
                   ? 'Start your transformation today'
                   : 'Continue your journey'}
               </p>
@@ -216,30 +248,75 @@ function LoginPageContent() {
               required
             />
 
-            <Input
-              type="password"
-              label="Password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            {!isForgotPassword && (
+              <Input
+                type="password"
+                label="Password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            )}
 
-            <Button type="submit" className="w-full" isLoading={loading}>
-              {isSignUp ? 'Sign Up' : 'Sign In'}
-            </Button>
+            {resetEmailSent ? (
+              <div className="text-center space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-green-800 font-medium">✓ Email sent!</p>
+                  <p className="text-green-700 text-sm mt-1">
+                    Check your inbox for a password reset link. If you don't see it, check your spam folder.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setIsForgotPassword(false)
+                    setResetEmailSent(false)
+                  }}
+                  className="w-full"
+                >
+                  Back to Sign In
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Button type="submit" className="w-full" isLoading={loading}>
+                  {isForgotPassword
+                    ? 'Send Reset Link'
+                    : isSignUp
+                    ? 'Sign Up'
+                    : 'Sign In'}
+                </Button>
 
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="text-primary-500 hover:underline text-sm"
-              >
-                {isSignUp
-                  ? 'Already have an account? Sign in'
-                  : "Don't have an account? Sign up"}
-              </button>
-            </div>
+                {!isSignUp && !isForgotPassword && (
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => setIsForgotPassword(true)}
+                      className="text-primary-500 hover:underline text-sm"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                )}
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSignUp(!isSignUp)
+                      setIsForgotPassword(false)
+                      setResetEmailSent(false)
+                    }}
+                    className="text-primary-500 hover:underline text-sm"
+                  >
+                    {isSignUp
+                      ? 'Already have an account? Sign in'
+                      : "Don't have an account? Sign up"}
+                  </button>
+                </div>
+              </>
+            )}
           </form>
         </Card>
 
