@@ -36,10 +36,42 @@ function OnboardingPageContent() {
   useEffect(() => {
     const initOnboarding = async () => {
       try {
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser()
+        // Handle magic link authentication callback
+        // Check if there are auth tokens in the URL hash (from magic link)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const accessToken = hashParams.get('access_token')
+        const refreshToken = hashParams.get('refresh_token')
         
-        if (!user) {
+        if (accessToken && refreshToken) {
+          // Magic link callback - exchange tokens for session
+          console.log('🔗 Processing magic link authentication...')
+          
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          })
+          
+          if (sessionError) {
+            console.error('Error setting session from magic link:', sessionError)
+            toast.error('Failed to authenticate. Please try again.')
+            router.push('/login')
+            return
+          }
+          
+          // Clear the hash from URL after processing
+          window.history.replaceState(null, '', window.location.pathname + window.location.search)
+          
+          console.log('✅ Magic link authentication successful')
+        }
+        
+        // Wait a moment for session to be established
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
+        // Get current user (should be authenticated now)
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        
+        if (userError || !user) {
+          console.log('No authenticated user found, redirecting to login')
           router.push('/login')
           return
         }
