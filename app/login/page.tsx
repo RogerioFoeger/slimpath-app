@@ -264,7 +264,7 @@ function LoginPageContent() {
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <p className="text-green-800 font-medium">✓ Email sent!</p>
                   <p className="text-green-700 text-sm mt-1">
-                    Check your inbox for a password reset link. If you don't see it, check your spam folder.
+                    Check your inbox for a password reset link. If you don&apos;t see it, check your spam folder.
                   </p>
                 </div>
                 <Button
