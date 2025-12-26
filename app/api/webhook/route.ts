@@ -30,30 +30,143 @@ export async function POST(request: NextRequest) {
   let payload: any = null
   
   try {
-    // Read payload first (needed for CartPanda which doesn't support custom headers)
+    // Read payload - support both JSON and form data (for CartPanda compatibility)
+    // Also support query parameters only (for CartPanda URL-only configuration)
+    const contentType = request.headers.get('content-type') || ''
+    const url = new URL(request.url)
+    
+    // Check if this is a query-parameter-only request (CartPanda URL-only config)
+    const hasQueryParams = url.searchParams.has('email') || url.searchParams.has('secret')
+    
     try {
-      payload = await request.json()
-      console.log('📥 Webhook payload received:', { 
-        email: payload.email,
-        profile_type: payload.profile_type,
-        subscription_plan: payload.subscription_plan,
-        has_secret: !!(payload.webhook_secret || payload.secret || payload.auth_token)
-      })
+      // Only try to parse body if content-type is set or if there are no query params
+      if (contentType && !hasQueryParams) {
+        if (contentType.includes('application/json')) {
+          // Parse JSON payload
+          payload = await request.json()
+          console.log('📥 Webhook payload received (JSON):', { 
+            email: payload.email,
+            profile_type: payload.profile_type,
+            subscription_plan: payload.subscription_plan,
+            has_secret: !!(payload.webhook_secret || payload.secret || payload.auth_token)
+          })
+        } else if (contentType.includes('application/x-www-form-urlencoded') || contentType.includes('multipart/form-data')) {
+          // Parse form data (URL-encoded or multipart)
+          const formData = await request.formData()
+          payload = {}
+          
+          // Convert FormData to object
+          for (const [key, value] of formData.entries()) {
+            // Handle both string and File values
+            payload[key] = typeof value === 'string' ? value : value.toString()
+          }
+          
+          // Convert amount to number if it's a string
+          if (payload.amount && typeof payload.amount === 'string') {
+            payload.amount = parseFloat(payload.amount) || 0
+          }
+          
+          console.log('📥 Webhook payload received (Form Data):', { 
+            email: payload.email,
+            profile_type: payload.profile_type,
+            subscription_plan: payload.subscription_plan,
+            has_secret: !!(payload.webhook_secret || payload.secret || payload.auth_token),
+            contentType
+          })
+        } else {
+          // Try JSON first, then fall back to form data
+          try {
+            payload = await request.json()
+            console.log('📥 Webhook payload received (Auto-detected JSON):', { 
+              email: payload.email,
+              profile_type: payload.profile_type,
+              subscription_plan: payload.subscription_plan,
+              has_secret: !!(payload.webhook_secret || payload.secret || payload.auth_token)
+            })
+          } catch {
+            // Fall back to form data
+            const formData = await request.formData()
+            payload = {}
+            
+            for (const [key, value] of formData.entries()) {
+              payload[key] = typeof value === 'string' ? value : value.toString()
+            }
+            
+            // Convert amount to number if it's a string
+            if (payload.amount && typeof payload.amount === 'string') {
+              payload.amount = parseFloat(payload.amount) || 0
+            }
+            
+            console.log('📥 Webhook payload received (Auto-detected Form Data):', { 
+              email: payload.email,
+              profile_type: payload.profile_type,
+              subscription_plan: payload.subscription_plan,
+              has_secret: !!(payload.webhook_secret || payload.secret || payload.auth_token)
+            })
+          }
+        }
+      } else if (hasQueryParams) {
+        // Query parameters only (CartPanda URL-only configuration)
+        payload = {}
+        console.log('📥 Webhook payload received (Query Parameters only):', {
+          email: url.searchParams.get('email'),
+          profile_type: url.searchParams.get('profile_type'),
+          subscription_plan: url.searchParams.get('subscription_plan'),
+          has_secret: !!(url.searchParams.get('secret') || url.searchParams.get('webhook_secret'))
+        })
+      } else {
+        // No content-type and no query params - try to parse anyway
+        try {
+          payload = await request.json()
+        } catch {
+          payload = {}
+        }
+      }
     } catch (parseError: any) {
-      console.error('❌ Failed to parse webhook payload:', parseError.message)
-      return NextResponse.json(
-        { error: 'Invalid JSON payload', details: parseError.message },
-        { status: 400 }
-      )
+      // If parsing fails but we have query params, that's okay
+      if (hasQueryParams) {
+        payload = {}
+        console.log('📥 Webhook using query parameters only (body parsing failed)')
+      } else {
+        console.error('❌ Failed to parse webhook payload:', parseError.message)
+        console.error('Content-Type:', contentType)
+        return NextResponse.json(
+          { error: 'Invalid payload format', details: parseError.message, contentType },
+          { status: 400 }
+        )
+      }
     }
 
-    // Verify webhook secret - check body first (for CartPanda), then header (for backward compatibility)
+    // Normalize amount to number (form data sends it as string)
+    if (payload.amount !== undefined) {
+      if (typeof payload.amount === 'string') {
+        payload.amount = parseFloat(payload.amount) || 0
+      } else if (typeof payload.amount !== 'number') {
+        payload.amount = Number(payload.amount) || 0
+      }
+    }
+
+    // Verify webhook secret - check query params first (for CartPanda URL-only config), then body, then header
+    const querySecret = url.searchParams.get('secret') || 
+                       url.searchParams.get('webhook_secret') || 
+                       url.searchParams.get('auth_token')
+    
     const webhookSecret = 
-      payload.webhook_secret || 
-      payload.secret || 
-      payload.auth_token ||
+      querySecret ||
+      payload?.webhook_secret || 
+      payload?.secret || 
+      payload?.auth_token ||
       request.headers.get('x-webhook-secret')
     const expectedSecret = process.env.WEBHOOK_SECRET || process.env.NEXT_PUBLIC_WEBHOOK_SECRET
+    
+    // Log where secret was found
+    if (querySecret) {
+      console.log('🔐 Webhook secret found in query parameters')
+    } else if (payload?.webhook_secret || payload?.secret || payload?.auth_token) {
+      console.log('🔐 Webhook secret found in request body')
+    } else if (request.headers.get('x-webhook-secret')) {
+      console.log('🔐 Webhook secret found in headers')
+    }
     
     if (!expectedSecret) {
       console.error('❌ WEBHOOK_SECRET not configured in environment variables')
@@ -67,7 +180,10 @@ export async function POST(request: NextRequest) {
       console.error('❌ Webhook secret mismatch')
       console.error('Received:', webhookSecret ? `${webhookSecret.substring(0, 5)}***` : 'null/undefined')
       console.error('Expected:', expectedSecret ? `${expectedSecret.substring(0, 5)}***` : 'null/undefined')
-      console.error('Payload keys:', Object.keys(payload))
+      console.error('Source:', querySecret ? 'query params' : (payload ? 'body' : 'header'))
+      if (payload) {
+        console.error('Payload keys:', Object.keys(payload))
+      }
       return NextResponse.json(
         { error: 'Unauthorized', message: 'Invalid webhook secret' },
         { status: 401 }
@@ -97,6 +213,18 @@ export async function POST(request: NextRequest) {
     console.log(`Using base URL for redirects: ${baseUrl}`)
 
     // Extract user data from webhook payload (exclude secret fields)
+    // If payload is null/empty, try to get data from query parameters (for CartPanda URL-only config)
+    const payloadData = payload || {}
+    const queryData = {
+      email: url.searchParams.get('email'),
+      name: url.searchParams.get('name'),
+      profile_type: url.searchParams.get('profile_type'),
+      subscription_plan: url.searchParams.get('subscription_plan'),
+      transaction_id: url.searchParams.get('transaction_id'),
+      amount: url.searchParams.get('amount'),
+    }
+    
+    // Merge query params with payload (payload takes precedence)
     const {
       email,
       password,
@@ -104,15 +232,23 @@ export async function POST(request: NextRequest) {
       profile_type,
       subscription_plan,
       transaction_id,
-      amount,
+      amount: amountValue,
       // Exclude secret fields from user data
       webhook_secret,
       secret,
       auth_token,
-    } = payload
+    } = {
+      ...queryData,
+      ...payloadData,
+    }
+    
+    // Convert amount from query param if needed
+    const amount = amountValue !== undefined ? amountValue : (queryData.amount ? parseFloat(queryData.amount) : undefined)
 
     if (!email || !profile_type || !subscription_plan) {
       console.error('Missing required fields:', { email, profile_type, subscription_plan })
+      console.error('Payload data:', payloadData)
+      console.error('Query data:', queryData)
       return NextResponse.json(
         { error: 'Missing required fields', received: { email, profile_type, subscription_plan } },
         { status: 400 }
