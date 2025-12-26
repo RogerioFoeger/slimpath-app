@@ -55,8 +55,12 @@ export async function POST(request: NextRequest) {
           const formData = await request.formData()
           payload = {}
           
-          // Convert FormData to object
-          for (const [key, value] of formData.entries()) {
+          // Convert FormData to object (compatible with es5 target)
+          const entries = Array.from(formData.entries())
+          for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i]
+            const key = entry[0]
+            const value = entry[1]
             // Handle both string and File values
             payload[key] = typeof value === 'string' ? value : value.toString()
           }
@@ -88,7 +92,12 @@ export async function POST(request: NextRequest) {
             const formData = await request.formData()
             payload = {}
             
-            for (const [key, value] of formData.entries()) {
+            // Convert FormData to object (compatible with es5 target)
+            const entries = Array.from(formData.entries())
+            for (let i = 0; i < entries.length; i++) {
+              const entry = entries[i]
+              const key = entry[0]
+              const value = entry[1]
               payload[key] = typeof value === 'string' ? value : value.toString()
             }
             
