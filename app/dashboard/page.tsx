@@ -450,31 +450,32 @@ export default function DashboardPage() {
   }, [user, isSubscribed, subscribeToPush, unsubscribeFromPush])
 
   const handleLogout = useCallback(async () => {
+    // Prevent multiple clicks
+    if (isLoggingOut) return
+    
     setIsLoggingOut(true)
     setLoading(false) // Stop loading state immediately
     
     try {
-      // Clear any session storage
+      // Clear any session storage first
       sessionStorage.clear()
       
-      // Sign out and wait for it to complete
-      const { error } = await supabase.auth.signOut()
+      // Start sign out process (don't wait for it to complete)
+      // This prevents the logout from hanging if signOut is slow
+      supabase.auth.signOut().catch((error) => {
+        console.warn('Sign out error (non-critical, redirecting anyway):', error)
+      })
       
-      if (error) {
-        console.error('Error during logout:', error)
-        // Even if there's an error, try to redirect
-        window.location.href = '/login'
-        return
-      }
-      
-      // Use window.location for a hard redirect to ensure all state is cleared
-      window.location.href = '/login'
+      // Immediately redirect - don't wait for signOut to complete
+      // This ensures immediate user feedback and prevents hanging
+      // The auth state listener will handle cleanup
+      window.location.replace('/login')
     } catch (error) {
       console.error('Error during logout:', error)
-      // Still redirect even if signOut fails
-      window.location.href = '/login'
+      // Force redirect even on error
+      window.location.replace('/login')
     }
-  }, [supabase])
+  }, [supabase, isLoggingOut])
 
   // Memoize expensive computations - must be before any conditional returns
   const greeting = useMemo(() => getGreeting(), [])
@@ -538,10 +539,11 @@ export default function DashboardPage() {
             )}
             <button
               onClick={handleLogout}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Logout"
+              disabled={isLoggingOut}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title={isLoggingOut ? "Logging out..." : "Logout"}
             >
-              <LogOut className="w-5 h-5 text-gray-600" />
+              <LogOut className={`w-5 h-5 ${isLoggingOut ? 'text-gray-400' : 'text-gray-600'}`} />
             </button>
           </div>
         </div>
