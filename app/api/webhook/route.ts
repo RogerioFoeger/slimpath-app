@@ -138,8 +138,17 @@ export async function POST(request: NextRequest) {
 
     // 5. ONBOARDING E EMAIL
     const { data: onboarding } = await supabase.from('user_onboarding').select('user_id').eq('user_id', userId).maybeSingle()
+    
     if (!onboarding) {
-        await supabase.from('user_onboarding').insert({ user_id: userId, onboarding_completed: false }).catch(() => {})
+        // Correção do erro do .catch():
+        // O Supabase não joga erro (throw), ele retorna um objeto { error }
+        const { error: onboardingError } = await supabase
+            .from('user_onboarding')
+            .insert({ user_id: userId, onboarding_completed: false })
+            
+        if (onboardingError) {
+            console.log('⚠️ Aviso: Onboarding já existia ou falhou levemente:', onboardingError.message)
+        }
     }
 
     try {
