@@ -452,20 +452,29 @@ export default function DashboardPage() {
   const handleLogout = useCallback(async () => {
     setIsLoggingOut(true)
     setLoading(false) // Stop loading state immediately
+    
     try {
-      // Sign out and redirect immediately - no delay needed
-      supabase.auth.signOut().then(() => {
-        router.push('/login')
-      }).catch((error) => {
+      // Clear any session storage
+      sessionStorage.clear()
+      
+      // Sign out and wait for it to complete
+      const { error } = await supabase.auth.signOut()
+      
+      if (error) {
         console.error('Error during logout:', error)
-        // Still redirect even if signOut fails
-        router.push('/login')
-      })
+        // Even if there's an error, try to redirect
+        window.location.href = '/login'
+        return
+      }
+      
+      // Use window.location for a hard redirect to ensure all state is cleared
+      window.location.href = '/login'
     } catch (error) {
       console.error('Error during logout:', error)
-      router.push('/login')
+      // Still redirect even if signOut fails
+      window.location.href = '/login'
     }
-  }, [supabase, router])
+  }, [supabase])
 
   // Memoize expensive computations - must be before any conditional returns
   const greeting = useMemo(() => getGreeting(), [])
