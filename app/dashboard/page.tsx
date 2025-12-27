@@ -1,14 +1,11 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { User, DailyContent, DailyTask, ProfileContent, UserDailyProgress, MoodCheckin as MoodCheckinType, MoodType, TimeOfDay } from '@/lib/types'
-import { LeanTrainer } from '@/components/dashboard/LeanTrainer'
 import { DailyChecklist } from '@/components/dashboard/DailyChecklist'
-import { MoodCheckin } from '@/components/dashboard/MoodCheckin'
-import { NutritionModule } from '@/components/dashboard/NutritionModule'
-import { PanicButton } from '@/components/dashboard/PanicButton'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { ProgressBar } from '@/components/ui/ProgressBar'
@@ -17,6 +14,12 @@ import { getGreeting, getTodayString, calculateCurrentDay } from '@/lib/utils'
 import { toast } from 'sonner'
 import { LogOut, Bell, BellOff, Award, Gift } from 'lucide-react'
 import { usePushNotifications } from '@/lib/hooks/usePushNotifications'
+
+// Lazy load heavy components
+const LeanTrainer = dynamic(() => import('@/components/dashboard/LeanTrainer').then(mod => ({ default: mod.LeanTrainer })), { ssr: false })
+const MoodCheckin = dynamic(() => import('@/components/dashboard/MoodCheckin').then(mod => ({ default: mod.MoodCheckin })), { ssr: false })
+const NutritionModule = dynamic(() => import('@/components/dashboard/NutritionModule').then(mod => ({ default: mod.NutritionModule })), { ssr: false })
+const PanicButton = dynamic(() => import('@/components/dashboard/PanicButton').then(mod => ({ default: mod.PanicButton })), { ssr: false })
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -54,24 +57,27 @@ export default function DashboardPage() {
         return
       }
 
-      // Fetch user profile
-      const { data: userProfile, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .single()
-
-      if (userError) throw userError
-
       // Check for onboarding completion flag from sessionStorage
       const justCompleted = sessionStorage.getItem('onboarding_just_completed')
       
-      // Check if onboarding is completed
-      const { data: onboarding, error: onboardingError } = await supabase
-        .from('user_onboarding')
-        .select('*')
-        .eq('user_id', authUser.id)
-        .maybeSingle()
+      // Parallelize independent queries
+      const [userResult, onboardingResult] = await Promise.all([
+        supabase
+          .from('users')
+          .select('*')
+          .eq('id', authUser.id)
+          .single(),
+        supabase
+          .from('user_onboarding')
+          .select('*')
+          .eq('user_id', authUser.id)
+          .maybeSingle()
+      ])
+
+      const { data: userProfile, error: userError } = userResult
+      const { data: onboarding, error: onboardingError } = onboardingResult
+
+      if (userError) throw userError
 
       // If we just completed onboarding, clear the flag and continue
       if (justCompleted === 'true') {
@@ -108,65 +114,86 @@ export default function DashboardPage() {
       const calculatedCurrentDay = calculateCurrentDay(onboarding?.completed_at || userProfile.created_at)
       
       // Update user's current_day in database if it's different (to keep it in sync)
+      // Do this in parallel with other fetches if possible, but we need calculatedCurrentDay first
+      const updatePromises: Promise<any>[] = []
       if (calculatedCurrentDay !== userProfile.current_day) {
         console.log(`Updating current_day from ${userProfile.current_day} to ${calculatedCurrentDay}`)
-        const { error: updateDayError } = await supabase
-          .from('users')
-          .update({ current_day: calculatedCurrentDay })
-          .eq('id', authUser.id)
-        
-        if (updateDayError) {
-          console.error('Error updating current_day:', updateDayError)
-        } else {
-          userProfile.current_day = calculatedCurrentDay
-        }
+        updatePromises.push(
+          supabase
+            .from('users')
+            .update({ current_day: calculatedCurrentDay })
+            .eq('id', authUser.id)
+            .then(({ error: updateDayError }) => {
+              if (updateDayError) {
+                console.error('Error updating current_day:', updateDayError)
+              } else {
+                userProfile.current_day = calculatedCurrentDay
+              }
+            })
+        )
       }
 
       setUser(userProfile)
 
-      // Fetch daily content for user's current day
-      const { data: content, error: contentError } = await supabase
-        .from('daily_content')
-        .select('*')
-        .eq('day_number', calculatedCurrentDay)
-        .single()
+      const today = getTodayString()
+
+      // Parallelize content fetches that depend on calculatedCurrentDay
+      const [contentResult, progressResult, checkinsResult] = await Promise.all([
+        supabase
+          .from('daily_content')
+          .select('*')
+          .eq('day_number', calculatedCurrentDay)
+          .single(),
+        supabase
+          .from('user_daily_progress')
+          .select('*')
+          .eq('user_id', authUser.id)
+          .eq('day_number', calculatedCurrentDay)
+          .eq('date', today)
+          .single(),
+        supabase
+          .from('mood_checkins')
+          .select('*')
+          .eq('user_id', authUser.id)
+          .eq('date', today)
+      ])
+
+      const { data: content, error: contentError } = contentResult
+      let { data: todayProgress, error: progressError } = progressResult
+      const { data: checkins, error: checkinsError } = checkinsResult
 
       if (contentError) throw contentError
-      setDailyContent(content)
-
-      // Fetch tasks for this day
-      const { data: dailyTasks, error: tasksError } = await supabase
-        .from('daily_tasks')
-        .select('*')
-        .eq('daily_content_id', content.id)
-        .order('task_order')
-
-      if (tasksError) throw tasksError
-      setTasks(dailyTasks || [])
-
-      // Fetch profile-specific content
-      const { data: profContent, error: profError } = await supabase
-        .from('profile_content')
-        .select('*')
-        .eq('daily_content_id', content.id)
-        .eq('profile_type', userProfile.profile_type)
-        .single()
-
-      if (profError) throw profError
-      setProfileContent(profContent)
-
-      // Fetch or create today's progress
-      const today = getTodayString()
-      let { data: todayProgress, error: progressError } = await supabase
-        .from('user_daily_progress')
-        .select('*')
-        .eq('user_id', authUser.id)
-        .eq('day_number', calculatedCurrentDay)
-        .eq('date', today)
-        .single()
-
+      if (checkinsError) throw checkinsError
       if (progressError && progressError.code !== 'PGRST116') throw progressError
 
+      setDailyContent(content)
+      setTodayCheckins(checkins || [])
+
+      // Fetch tasks and profile content in parallel (both depend on content.id)
+      const [tasksResult, profContentResult] = await Promise.all([
+        supabase
+          .from('daily_tasks')
+          .select('*')
+          .eq('daily_content_id', content.id)
+          .order('task_order'),
+        supabase
+          .from('profile_content')
+          .select('*')
+          .eq('daily_content_id', content.id)
+          .eq('profile_type', userProfile.profile_type)
+          .single()
+      ])
+
+      const { data: dailyTasks, error: tasksError } = tasksResult
+      const { data: profContent, error: profError } = profContentResult
+
+      if (tasksError) throw tasksError
+      if (profError) throw profError
+
+      setTasks(dailyTasks || [])
+      setProfileContent(profContent)
+
+      // Create progress if it doesn't exist
       if (!todayProgress) {
         const { data: newProgress, error: createError } = await supabase
           .from('user_daily_progress')
@@ -188,15 +215,8 @@ export default function DashboardPage() {
 
       setProgress(todayProgress)
 
-      // Fetch today's mood check-ins
-      const { data: checkins, error: checkinsError } = await supabase
-        .from('mood_checkins')
-        .select('*')
-        .eq('user_id', authUser.id)
-        .eq('date', today)
-
-      if (checkinsError) throw checkinsError
-      setTodayCheckins(checkins || [])
+      // Wait for any pending updates
+      await Promise.all(updatePromises)
 
     } catch (error: any) {
       // Don't show error toast if user is logging out
@@ -265,19 +285,40 @@ export default function DashboardPage() {
     }
   }, [loadDashboard, router, supabase])
 
-  const handleTaskToggle = async (taskId: string, completed: boolean) => {
+  const handleTaskToggle = useCallback(async (taskId: string, completed: boolean) => {
     if (!user || !progress) return
 
+    // Optimistic update - update UI immediately
+    const completedTasks = completed
+      ? [...progress.tasks_completed, taskId]
+      : progress.tasks_completed.filter((id) => id !== taskId)
+
+    const completionPercentage = Math.round((completedTasks.length / tasks.length) * 100)
+    const isFullyCompleted = completionPercentage === 100
+    const shouldEarnPoint = isFullyCompleted && !progress.point_earned
+
+    // Update local state immediately for instant feedback
+    const updatedProgress = {
+      ...progress,
+      tasks_completed: completedTasks,
+      completion_percentage: completionPercentage,
+      point_earned: shouldEarnPoint || progress.point_earned,
+    }
+    setProgress(updatedProgress)
+
+    // Update user state optimistically if earning a point
+    if (shouldEarnPoint) {
+      const newPoints = user.slim_points + 1
+      const shouldUnlockBonus = newPoints >= BONUS_UNLOCK_THRESHOLD && !user.bonus_unlocked
+      setUser({
+        ...user,
+        slim_points: newPoints,
+        bonus_unlocked: shouldUnlockBonus || user.bonus_unlocked,
+      })
+    }
+
     try {
-      const completedTasks = completed
-        ? [...progress.tasks_completed, taskId]
-        : progress.tasks_completed.filter((id) => id !== taskId)
-
-      const completionPercentage = Math.round((completedTasks.length / tasks.length) * 100)
-      const isFullyCompleted = completionPercentage === 100
-      const shouldEarnPoint = isFullyCompleted && !progress.point_earned
-
-      // Update progress
+      // Update progress in database
       const { error: progressError } = await supabase
         .from('user_daily_progress')
         .update({
@@ -341,37 +382,56 @@ export default function DashboardPage() {
           toast.success('🎁 Bonus content unlocked! Check your rewards page!')
         }
       }
-
-      await loadDashboard()
     } catch (error) {
       console.error('Error updating task:', error)
+      // Revert optimistic update on error
+      setProgress(progress)
+      if (shouldEarnPoint) {
+        setUser(user)
+      }
       toast.error('Failed to update task')
     }
-  }
+  }, [user, progress, tasks, supabase])
 
-  const handleMoodCheckin = async (mood: MoodType, timeOfDay: TimeOfDay, notes?: string) => {
+  const handleMoodCheckin = useCallback(async (mood: MoodType, timeOfDay: TimeOfDay, notes?: string) => {
     if (!user) return
 
+    const newCheckin = {
+      id: `temp-${Date.now()}`,
+      user_id: user.id,
+      mood,
+      time_of_day: timeOfDay,
+      notes,
+      date: getTodayString(),
+      created_at: new Date().toISOString(),
+    } as MoodCheckinType
+
+    // Optimistic update
+    setTodayCheckins(prev => [...prev, newCheckin])
+
     try {
-      const { error } = await supabase.from('mood_checkins').insert({
+      const { data, error } = await supabase.from('mood_checkins').insert({
         user_id: user.id,
         mood,
         time_of_day: timeOfDay,
         notes,
         date: getTodayString(),
-      })
+      }).select().single()
 
       if (error) throw error
 
+      // Update with real data from server
+      setTodayCheckins(prev => prev.map(c => c.id === newCheckin.id ? data : c))
       toast.success('Mood check-in saved!')
-      await loadDashboard()
     } catch (error) {
       console.error('Error saving mood:', error)
+      // Revert optimistic update
+      setTodayCheckins(prev => prev.filter(c => c.id !== newCheckin.id))
       toast.error('Failed to save mood check-in')
     }
-  }
+  }, [user, supabase])
 
-  const handleNotificationToggle = async () => {
+  const handleNotificationToggle = useCallback(async () => {
     if (!user) return
 
     try {
@@ -386,21 +446,25 @@ export default function DashboardPage() {
       console.error('Error toggling notifications:', error)
       toast.error('Failed to update notifications')
     }
-  }
+  }, [user, isSubscribed, subscribeToPush, unsubscribeFromPush])
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     setIsLoggingOut(true)
     setLoading(false) // Stop loading state immediately
     try {
-      await supabase.auth.signOut()
-      // Small delay to ensure auth state is updated before redirect
-      await new Promise(resolve => setTimeout(resolve, 100))
-      router.push('/login')
+      // Sign out and redirect immediately - no delay needed
+      supabase.auth.signOut().then(() => {
+        router.push('/login')
+      }).catch((error) => {
+        console.error('Error during logout:', error)
+        // Still redirect even if signOut fails
+        router.push('/login')
+      })
     } catch (error) {
       console.error('Error during logout:', error)
-      setIsLoggingOut(false)
+      router.push('/login')
     }
-  }
+  }, [supabase, router])
 
   if (loading) {
     return (
@@ -412,6 +476,10 @@ export default function DashboardPage() {
       </div>
     )
   }
+
+  // Memoize expensive computations
+  const greeting = useMemo(() => getGreeting(), [])
+  const todayString = useMemo(() => getTodayString(), [])
 
   if (!user || !dailyContent || !profileContent || !progress) {
     return (
@@ -434,7 +502,7 @@ export default function DashboardPage() {
             />
             <div>
               <h1 className="text-2xl font-bold gradient-text">SlimPath AI</h1>
-              <p className="text-sm text-gray-600">{getGreeting()}, {user.full_name}!</p>
+              <p className="text-sm text-gray-600">{greeting}, {user.full_name}!</p>
             </div>
           </div>
           <div className="flex items-center gap-3">

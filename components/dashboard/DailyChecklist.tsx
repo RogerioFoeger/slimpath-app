@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, memo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { ProgressBar } from '@/components/ui/ProgressBar'
@@ -14,7 +14,7 @@ interface DailyChecklistProps {
   slimPoints: number
 }
 
-export function DailyChecklist({
+export const DailyChecklist = memo(function DailyChecklist({
   tasks,
   completedTaskIds,
   onTaskToggle,
@@ -22,8 +22,13 @@ export function DailyChecklist({
 }: DailyChecklistProps) {
   const completedCount = completedTaskIds.length
   const totalCount = tasks.length
-  const percentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0
-  const isComplete = completedCount === totalCount && totalCount > 0
+  const percentage = useMemo(() => totalCount > 0 ? (completedCount / totalCount) * 100 : 0, [completedCount, totalCount])
+  const isComplete = useMemo(() => completedCount === totalCount && totalCount > 0, [completedCount, totalCount])
+  
+  const sortedTasks = useMemo(() => 
+    [...tasks].sort((a, b) => a.task_order - b.task_order),
+    [tasks]
+  )
 
   return (
     <Card>
@@ -66,9 +71,7 @@ export function DailyChecklist({
               No tasks for today. Check back soon!
             </p>
           ) : (
-            tasks
-              .sort((a, b) => a.task_order - b.task_order)
-              .map((task) => (
+            sortedTasks.map((task) => (
                 <div
                   key={task.id}
                   className="p-3 rounded-lg hover:bg-gray-50 transition-colors"
@@ -92,5 +95,5 @@ export function DailyChecklist({
       </CardContent>
     </Card>
   )
-}
+})
 
