@@ -33,17 +33,24 @@ export default function DashboardPage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const loadDashboard = useCallback(async () => {
-    // Don't load if we're logging out
-    if (isLoggingOut) return
-    
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser()
+      
+      // If user is authenticated, reset the logging out flag (in case they logged back in)
+      if (authUser) {
+        setIsLoggingOut(false)
+      }
       
       if (!authUser) {
         // Don't show error if we're logging out
         if (!isLoggingOut) {
           router.push('/login')
         }
+        return
+      }
+      
+      // Don't load if we're logging out (but user is still authenticated - race condition)
+      if (isLoggingOut) {
         return
       }
 
@@ -192,18 +199,43 @@ export default function DashboardPage() {
       setTodayCheckins(checkins || [])
 
     } catch (error: any) {
-      console.error('Error loading dashboard:', error)
       // Don't show error toast if user is logging out
       if (isLoggingOut) {
+        setLoading(false)
         return
       }
-      // Check if error is due to unauthenticated user (expected after logout)
-      if (error?.message?.includes('JWT') || error?.code === 'PGRST301') {
-        // User is not authenticated, silently redirect
+      
+      // Double-check if user is still authenticated (might have been signed out during request)
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) {
+        // User is not authenticated, silently redirect without showing error
+        console.log('User not authenticated, redirecting to login')
         router.push('/login')
+        setLoading(false)
         return
       }
+      
+      // Check if error is due to unauthenticated user (expected after logout)
+      // This can happen if user was signed out while the request was in flight
+      const isAuthError = 
+        error?.message?.includes('JWT') || 
+        error?.message?.includes('token') ||
+        error?.message?.includes('unauthorized') ||
+        error?.message?.includes('not authenticated') ||
+        error?.code === 'PGRST301' ||
+        error?.status === 401 ||
+        error?.statusCode === 401
+      
+      if (isAuthError) {
+        // User is not authenticated, silently redirect without showing error
+        console.log('Authentication error detected, redirecting to login')
+        router.push('/login')
+        setLoading(false)
+        return
+      }
+      
       // Only show error for other types of errors
+      console.error('Error loading dashboard:', error)
       toast.error('Failed to load dashboard')
     } finally {
       setLoading(false)
@@ -211,13 +243,20 @@ export default function DashboardPage() {
   }, [router, supabase, isLoggingOut])
 
   useEffect(() => {
+    // Load dashboard on mount (loadDashboard will check auth state and isLoggingOut)
     loadDashboard()
 
-    // Listen for auth state changes (e.g., logout)
+    // Listen for auth state changes (e.g., logout, login)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT' || !session) {
         setIsLoggingOut(true)
+        setLoading(false) // Stop loading immediately
+        // Don't call loadDashboard here, just redirect
         router.push('/login')
+      } else if (event === 'SIGNED_IN' && session) {
+        // User logged back in, reset the flag and load dashboard
+        setIsLoggingOut(false)
+        loadDashboard()
       }
     })
 
@@ -351,8 +390,11 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
+    setLoading(false) // Stop loading state immediately
     try {
       await supabase.auth.signOut()
+      // Small delay to ensure auth state is updated before redirect
+      await new Promise(resolve => setTimeout(resolve, 100))
       router.push('/login')
     } catch (error) {
       console.error('Error during logout:', error)
