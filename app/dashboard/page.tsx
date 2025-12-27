@@ -30,13 +30,20 @@ export default function DashboardPage() {
   const [profileContent, setProfileContent] = useState<ProfileContent | null>(null)
   const [progress, setProgress] = useState<UserDailyProgress | null>(null)
   const [todayCheckins, setTodayCheckins] = useState<MoodCheckinType[]>([])
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const loadDashboard = useCallback(async () => {
+    // Don't load if we're logging out
+    if (isLoggingOut) return
+    
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser()
       
       if (!authUser) {
-        router.push('/login')
+        // Don't show error if we're logging out
+        if (!isLoggingOut) {
+          router.push('/login')
+        }
         return
       }
 
@@ -184,17 +191,40 @@ export default function DashboardPage() {
       if (checkinsError) throw checkinsError
       setTodayCheckins(checkins || [])
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading dashboard:', error)
+      // Don't show error toast if user is logging out
+      if (isLoggingOut) {
+        return
+      }
+      // Check if error is due to unauthenticated user (expected after logout)
+      if (error?.message?.includes('JWT') || error?.code === 'PGRST301') {
+        // User is not authenticated, silently redirect
+        router.push('/login')
+        return
+      }
+      // Only show error for other types of errors
       toast.error('Failed to load dashboard')
     } finally {
       setLoading(false)
     }
-  }, [router, supabase])
+  }, [router, supabase, isLoggingOut])
 
   useEffect(() => {
     loadDashboard()
-  }, [loadDashboard])
+
+    // Listen for auth state changes (e.g., logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        setIsLoggingOut(true)
+        router.push('/login')
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [loadDashboard, router, supabase])
 
   const handleTaskToggle = async (taskId: string, completed: boolean) => {
     if (!user || !progress) return
@@ -320,8 +350,14 @@ export default function DashboardPage() {
   }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
+    setIsLoggingOut(true)
+    try {
+      await supabase.auth.signOut()
+      router.push('/login')
+    } catch (error) {
+      console.error('Error during logout:', error)
+      setIsLoggingOut(false)
+    }
   }
 
   if (loading) {
