@@ -163,7 +163,7 @@ function SetPasswordPageContent() {
         </CardHeader>
         <CardContent>
           <p className="text-gray-600 text-center mb-6">
-            Please set a password for your account. You'll use this to sign in to the app.
+            Please set a password for your account. You&apos;ll use this to sign in to the app.
           </p>
           
           <form onSubmit={handleSubmit} className="space-y-4">
