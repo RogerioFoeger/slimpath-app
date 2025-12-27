@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// --- CONFIGURAÇÃO DO SUPABASE ---
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -15,15 +14,14 @@ const supabaseAnon = createClient(
 )
 
 export async function POST(request: NextRequest) {
-  const startTime = Date.now()
-  console.log('🚀 Webhook CartPanda iniciado!')
+  console.log('🚀 Webhook CartPanda iniciado (Versão Final)')
 
   try {
     const contentType = request.headers.get('content-type') || ''
     const url = new URL(request.url)
     let rawBody: any = {}
 
-    // 1. LEITURA DO BODY
+    // 1. LEITURA DOS DADOS
     if (contentType.includes('application/json')) {
       rawBody = await request.json()
     } else if (contentType.includes('form')) {
@@ -31,11 +29,10 @@ export async function POST(request: NextRequest) {
       rawBody = Object.fromEntries(formData.entries())
     }
 
-    // 2. EXTRAÇÃO DE PARÂMETROS DA URL (Query Params)
     const queryParams: any = {}
     url.searchParams.forEach((value, key) => { queryParams[key] = value })
 
-    // 3. SEGURANÇA (SECRET)
+    // 2. SEGURANÇA
     const webhookSecret = 
       url.searchParams.get('secret') || 
       rawBody?.webhook_secret || 
@@ -47,139 +44,116 @@ export async function POST(request: NextRequest) {
       console.error(`❌ Segredo Inválido!`)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.log('✅ Segredo Validado!')
 
-    // 4. NORMALIZAÇÃO DOS DADOS (O TRADUTOR DO CARTPANDA)
-    // O CartPanda envia dentro de um objeto "order", mas as vezes envia direto.
+    // 3. TRADUÇÃO DOS DADOS (CARTPANDA -> SUPABASE)
     const order = rawBody.order || rawBody
 
-    // A) Email
+    // Email
     const email = order.email || order.customer?.email || queryParams.email
 
-    // B) Nome (Correção do #22)
-    // Prioridade: customer.full_name > customer.first_name > order.name (que é o numero do pedido)
+    // Nome
     const fullName = 
         order.customer?.full_name || 
         (order.customer?.first_name ? `${order.customer.first_name} ${order.customer.last_name}` : null) ||
         queryParams.name ||
         "Cliente Sem Nome"
 
-    // C) Plano (Correção do NULL)
-    // Lê o SKU do primeiro produto. Se tiver "ANNUAL" ou "YEARLY" é anual. Se não, é mensal.
+    // Plano (Detecção por SKU)
     let plan = 'monthly' // Padrão
     let sku = ''
-    
     if (order.line_items && order.line_items.length > 0) {
-        // Pega o primeiro produto da lista
         const item = order.line_items[0]
         sku = item.sku || ''
-        const title = item.title || ''
-        const variant = item.variant_title || ''
-        
-        // Verifica se é anual
-        const searchString = (sku + title + variant).toUpperCase()
+        const searchString = (sku + (item.title||'') + (item.variant_title||'')).toUpperCase()
         if (searchString.includes('ANNUAL') || searchString.includes('YEARLY') || searchString.includes('ANUAL')) {
             plan = 'annual'
         }
     }
-    
-    // Se veio via query params, respeita
     if (queryParams.subscription_plan) plan = queryParams.subscription_plan
 
-    // D) Outros dados
+    // CORREÇÃO DO BUG: Profile Type
+    // Se não vier no link, manda null. NÃO manda 'falsemagro' se o banco não aceitar.
+    const profileType = queryParams.profile_type || null 
+
     const transactionId = order.id || queryParams.transaction_id
     const amount = order.total_price || queryParams.amount || 0
-    const profileType = queryParams.profile_type || 'falsemagro' // Padrão se não vier
 
-    console.log('🕵️ DADOS FINAIS EXTRAÍDOS:', { 
-        email, 
-        nome: fullName, 
-        plano: plan, 
-        sku_detectado: sku 
-    })
+    if (!email) return NextResponse.json({ error: 'Email missing' }, { status: 400 })
 
-    if (!email) {
-      return NextResponse.json({ error: 'Email missing' }, { status: 400 })
-    }
+    console.log('🕵️ Dados Prontos:', { email, fullName, plan, profileType })
 
-    // 5. LÓGICA DE BANCO DE DADOS (SUPABASE)
+    // 4. GRAVAÇÃO NO BANCO (AUTH + PUBLIC)
     const endDate = new Date()
     if (plan === 'annual') endDate.setFullYear(endDate.getFullYear() + 1)
     else endDate.setMonth(endDate.getMonth() + 1)
 
-    // -- Verifica/Cria Auth User --
+    // A) Garante Usuário Auth
     const { data: existingUsers } = await supabase.auth.admin.listUsers()
     const existingAuthUser = existingUsers?.users?.find(u => u.email === email)
     let userId: string
 
     if (existingAuthUser) {
       userId = existingAuthUser.id
-      console.log('👤 Usuário Auth já existia.')
     } else {
-      console.log('👤 Criando novo Auth...')
       const isTestUser = amount == 0
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email,
         email_confirm: !isTestUser,
-        user_metadata: { full_name: fullName, profile_type: profileType },
+        user_metadata: { full_name: fullName }, // Removi profile_type daqui para evitar conflito
         password: isTestUser ? 'TestUser123!' : undefined
       })
-      if (authError || !authData.user) throw new Error('Falha ao criar Auth')
+      if (authError || !authData.user) throw new Error('Falha ao criar Auth: ' + authError?.message)
       userId = authData.user.id
+      // Pequena pausa para o Trigger do banco rodar (se houver)
       await new Promise(r => setTimeout(r, 1000))
     }
 
-    // -- Atualiza/Cria Profile na Tabela Users --
-    const userData = {
-      full_name: fullName,
-      profile_type: profileType,
-      subscription_plan: plan,
-      subscription_end_date: endDate.toISOString(),
-      status: 'active',
-      webhook_data: { 
-          transaction_id: transactionId, 
-          amount: amount, 
-          source: 'cartpanda',
-          raw_sku: sku
-      }
-    }
-
-    const { data: profile } = await supabase.from('users').select('id').eq('id', userId).maybeSingle()
-    
-    if (profile) {
-      await supabase.from('users').update(userData).eq('id', userId)
-      console.log('📝 Perfil atualizado.')
-    } else {
-      await supabase.from('users').insert({
+    // B) UPSERT NA TABELA USERS (O Corretor Blindado)
+    // Usa upsert para criar ou atualizar, ignorando se o trigger já criou a linha vazia
+    const { error: upsertError } = await supabase.from('users').upsert({
         id: userId,
-        email,
-        ...userData,
-        current_day: 1,
-        slim_points: 0,
-        bonus_unlocked: false
-      })
-      console.log('📝 Novo perfil criado.')
+        email: email,
+        full_name: fullName,
+        subscription_plan: plan,
+        subscription_end_date: endDate.toISOString(),
+        status: 'active',
+        // Só envia profile_type se ele existir (para não quebrar enum)
+        ...(profileType ? { profile_type: profileType } : {}),
+        webhook_data: { 
+            transaction_id: transactionId, 
+            amount: amount, 
+            source: 'cartpanda',
+            raw_sku: sku
+        }
+    }, { 
+        onConflict: 'id' 
+    })
+
+    if (upsertError) {
+        console.error('❌ Erro ao gravar no banco:', upsertError)
+        // Não retorna erro 500 para não travar o CartPanda, mas loga o erro
+    } else {
+        console.log('✅ Perfil gravado com sucesso (Upsert)!')
     }
 
-    // -- Garante Onboarding --
+    // 5. ONBOARDING E EMAIL
     const { data: onboarding } = await supabase.from('user_onboarding').select('user_id').eq('user_id', userId).maybeSingle()
     if (!onboarding) {
-        await supabase.from('user_onboarding').insert({ user_id: userId, onboarding_completed: false })
+        await supabase.from('user_onboarding').insert({ user_id: userId, onboarding_completed: false }).catch(() => {})
     }
 
-    // -- Envia Magic Link --
     try {
         const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://slimpathai.com'}/onboarding`
         await supabaseAnon.auth.signInWithOtp({
             email,
             options: { emailRedirectTo: redirectUrl, shouldCreateUser: false }
         })
-        console.log('📧 Magic Link enviado!')
+        console.log('📧 Email enviado!')
     } catch (err) {
-        console.error('⚠️ Erro no envio de email:', err)
+        console.error('⚠️ Erro envio email:', err)
     }
 
-    return NextResponse.json({ success: true, message: 'Processado com sucesso' })
+    return NextResponse.json({ success: true })
 
   } catch (error: any) {
     console.error('❌ Erro Fatal:', error)
