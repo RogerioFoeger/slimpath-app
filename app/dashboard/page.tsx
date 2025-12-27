@@ -115,22 +115,21 @@ export default function DashboardPage() {
       
       // Update user's current_day in database if it's different (to keep it in sync)
       // Do this in parallel with other fetches if possible, but we need calculatedCurrentDay first
-      const updatePromises: Promise<any>[] = []
+      let updateCurrentDayPromise: Promise<void> | null = null
       if (calculatedCurrentDay !== userProfile.current_day) {
         console.log(`Updating current_day from ${userProfile.current_day} to ${calculatedCurrentDay}`)
-        updatePromises.push(
-          supabase
+        updateCurrentDayPromise = (async () => {
+          const { error: updateDayError } = await supabase
             .from('users')
             .update({ current_day: calculatedCurrentDay })
             .eq('id', authUser.id)
-            .then(({ error: updateDayError }) => {
-              if (updateDayError) {
-                console.error('Error updating current_day:', updateDayError)
-              } else {
-                userProfile.current_day = calculatedCurrentDay
-              }
-            })
-        )
+          
+          if (updateDayError) {
+            console.error('Error updating current_day:', updateDayError)
+          } else {
+            userProfile.current_day = calculatedCurrentDay
+          }
+        })()
       }
 
       setUser(userProfile)
@@ -216,7 +215,9 @@ export default function DashboardPage() {
       setProgress(todayProgress)
 
       // Wait for any pending updates
-      await Promise.all(updatePromises)
+      if (updateCurrentDayPromise) {
+        await updateCurrentDayPromise
+      }
 
     } catch (error: any) {
       // Don't show error toast if user is logging out
@@ -466,6 +467,9 @@ export default function DashboardPage() {
     }
   }, [supabase, router])
 
+  // Memoize expensive computations - must be before any conditional returns
+  const greeting = useMemo(() => getGreeting(), [])
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-secondary-50">
@@ -476,10 +480,6 @@ export default function DashboardPage() {
       </div>
     )
   }
-
-  // Memoize expensive computations
-  const greeting = useMemo(() => getGreeting(), [])
-  const todayString = useMemo(() => getTodayString(), [])
 
   if (!user || !dailyContent || !profileContent || !progress) {
     return (
