@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://slimpathai.com'}/onboarding`
+        const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://slimpathai.com'}/set-password`
         await supabaseAnon.auth.signInWithOtp({
             email,
             options: { emailRedirectTo: redirectUrl, shouldCreateUser: false }
