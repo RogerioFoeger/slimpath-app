@@ -41,8 +41,9 @@ function OnboardingPageContent() {
         const hashParams = new URLSearchParams(window.location.hash.substring(1))
         const accessToken = hashParams.get('access_token')
         const refreshToken = hashParams.get('refresh_token')
+        const isMagicLinkCallback = !!(accessToken && refreshToken)
         
-        if (accessToken && refreshToken) {
+        if (isMagicLinkCallback) {
           // Magic link callback - exchange tokens for session
           console.log('🔗 Processing magic link authentication...')
           
@@ -73,6 +74,17 @@ function OnboardingPageContent() {
         if (userError || !user) {
           console.log('No authenticated user found, redirecting to login')
           router.push('/login')
+          return
+        }
+
+        // If user came from magic link, redirect to password setup first
+        // Users created via webhook/magic link typically don't have a password set
+        // Requiring password setup ensures account security before proceeding to onboarding
+        if (isMagicLinkCallback) {
+          console.log('🔐 User came from magic link, redirecting to password setup...')
+          
+          // Redirect to password setup - after password is set, user will be redirected back to onboarding
+          router.push('/set-password?redirect=/onboarding')
           return
         }
 
