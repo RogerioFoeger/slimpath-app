@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
+import { PWAInstallPrompt } from '@/components/ui/PWAInstallPrompt'
 import { toast } from 'sonner'
 
 function LoginPageContent() {
@@ -202,6 +203,9 @@ function LoginPageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center p-4">
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
+      
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-6 md:mb-8" style={{ overflow: 'hidden' }}>
