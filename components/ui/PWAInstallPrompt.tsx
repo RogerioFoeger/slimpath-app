@@ -18,17 +18,10 @@ export function PWAInstallPrompt() {
   const [isInstalling, setIsInstalling] = useState(false)
 
   useEffect(() => {
-    // Check if already installed
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-    const isInWebAppiOS = (window.navigator as any).standalone === true
-    
-    if (isStandalone || isInWebAppiOS) {
-      return // Don't show if already installed
-    }
-
     // Check if user has dismissed the prompt before
     const dismissed = localStorage.getItem('pwa-install-dismissed')
     if (dismissed) {
+      console.log('[PWA Install] Prompt was previously dismissed')
       return // User has dismissed it
     }
 
@@ -36,6 +29,8 @@ export function PWAInstallPrompt() {
     const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
     // Detect Android
     const android = /Android/.test(navigator.userAgent)
+
+    console.log('[PWA Install] Device detection:', { iOS, android, userAgent: navigator.userAgent })
 
     setIsIOS(iOS)
     setIsAndroid(android)
@@ -45,24 +40,22 @@ export function PWAInstallPrompt() {
       e.preventDefault()
       const promptEvent = e as BeforeInstallPromptEvent
       setDeferredPrompt(promptEvent)
-      // For Android, show the prompt when we receive the event
-      if (android) {
-        setTimeout(() => {
-          setShowPrompt(true)
-        }, 1000)
-      }
+      console.log('[PWA Install] beforeinstallprompt event received')
+      // Don't show prompt here - let the timeout below handle it
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
 
-    // Show prompt for iOS immediately (with a small delay for better UX)
-    if (iOS) {
-      setTimeout(() => {
-        setShowPrompt(true)
-      }, 1000)
-    }
+    // Show prompt for all devices (iOS, Android, and desktop) immediately (with a small delay for better UX)
+    // Note: Prompt will show even if app is already installed, as requested
+    console.log('[PWA Install] Will show prompt in 1 second')
+    const timeoutId = setTimeout(() => {
+      console.log('[PWA Install] Showing prompt now')
+      setShowPrompt(true)
+    }, 1000)
 
     return () => {
+      clearTimeout(timeoutId)
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
     }
   }, [])
