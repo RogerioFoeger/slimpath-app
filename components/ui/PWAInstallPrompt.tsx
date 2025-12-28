@@ -66,7 +66,12 @@ export function PWAInstallPrompt() {
   }
 
   const handleInstallAndroid = async () => {
-    if (!deferredPrompt) return
+    if (!deferredPrompt) {
+      console.warn('[PWA Install] Install button clicked but deferredPrompt is not available')
+      // Fallback: Show manual instructions or close the prompt with a message
+      // The UI should handle this by showing instructions instead of the button
+      return
+    }
 
     setIsInstalling(true)
     try {
@@ -84,6 +89,8 @@ export function PWAInstallPrompt() {
       setShowPrompt(false)
     } catch (error) {
       console.error('Error showing install prompt:', error)
+      // If prompt fails, close the modal and show instructions would be better
+      // For now, just log the error
     } finally {
       setIsInstalling(false)
     }
@@ -157,19 +164,38 @@ export function PWAInstallPrompt() {
                 </p>
               </div>
 
-              <Button
-                onClick={handleInstallAndroid}
-                className="w-full text-lg py-6 bg-gradient-to-r from-primary-500 to-secondary-500 hover:shadow-lg"
-                isLoading={isInstalling}
-                disabled={isInstalling}
-              >
-                <Download className="w-6 h-6 mr-2" />
-                {isInstalling ? 'Installing...' : '📲 Install App Now'}
-              </Button>
-
-              <p className="text-xs text-center text-gray-500">
-                Tap the button above to install SlimPath AI on your device
-              </p>
+              {deferredPrompt ? (
+                // Native install prompt available
+                <>
+                  <Button
+                    onClick={handleInstallAndroid}
+                    className="w-full text-lg py-6 bg-gradient-to-r from-primary-500 to-secondary-500 hover:shadow-lg"
+                    isLoading={isInstalling}
+                    disabled={isInstalling}
+                  >
+                    <Download className="w-6 h-6 mr-2" />
+                    {isInstalling ? 'Installing...' : '📲 Install App Now'}
+                  </Button>
+                  <p className="text-xs text-center text-gray-500">
+                    Tap the button above to install SlimPath AI on your device
+                  </p>
+                </>
+              ) : (
+                // Native prompt not available - show manual instructions
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                  <p className="text-sm font-medium text-gray-800 mb-3">
+                    To install SlimPath AI:
+                  </p>
+                  <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
+                    <li>Tap the menu (⋮) in the top-right corner of your browser</li>
+                    <li>Select &quot;Install app&quot; or &quot;Add to Home screen&quot;</li>
+                    <li>Confirm installation in the popup</li>
+                  </ol>
+                  <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-200">
+                    💡 Tip: You can also look for an install icon (⬇️ or ➕) in the address bar
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             // Generic fallback (for other browsers)
